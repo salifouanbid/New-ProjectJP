@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connexion — Portail Scolaire</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="public">
+  <header>
+    <a class="brand" href="/" style="text-decoration:none;color:inherit"><div class="logo">PS</div><div><div class="name">Portail Scolaire</div></div></a>
+    <div data-lang-switch></div>
+  </header>
+  <main>
+    <div class="card auth-card">
+      <div id="school-line" class="center mb hidden"><div class="muted small" data-fr="Établissement" data-en="School"></div><div class="school-name" id="school-name" style="font-size:1.3rem"></div></div>
+      <h1 class="center" data-fr="Connexion" data-en="Sign in"></h1>
+      <form id="login-form" autocomplete="on">
+        <div class="field" id="code-field"><label for="code" data-fr="Code de l'établissement" data-en="School code"></label><input id="code" name="school_code" autocomplete="organization" maxlength="30"></div>
+        <div class="field"><label for="username" data-fr="Identifiant" data-en="Username"></label><input id="username" name="username" autocomplete="username" required autofocus></div>
+        <div class="field"><label for="password" data-fr="Mot de passe" data-en="Password"></label><input id="password" name="password" type="password" autocomplete="current-password" required></div>
+        <div id="err" class="error-msg" role="alert"></div>
+        <button class="btn btn-primary btn-block" type="submit" data-fr="Se connecter" data-en="Sign in"></button>
+      </form>
+      <div class="center mt small"><a id="forgot" href="/reset.html" data-fr="Mot de passe oublié ?" data-en="Forgot your password?"></a></div>
+      <div class="center mt small"><a id="back" href="/" data-fr="← Changer d'établissement" data-en="← Change school"></a></div>
+    </div>
+  </main>
+</div>
+<script type="module" src="/js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portail Scolaire</title>
+  <meta name="description" content="Portail scolaire pour les établissements : notes, absences, bulletins, cahier de texte.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="public">
+  <header>
+    <div class="brand"><div class="logo">PS</div><div><div class="name">Portail Scolaire</div><div class="sub" data-fr="Gestion scolaire multi-établissements" data-en="Multi-school management"></div></div></div>
+    <div data-lang-switch></div>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <h1><span data-fr="Un portail,&nbsp;" data-en="One portal,&nbsp;"></span><br><span data-fr="chaque établissement chez lui." data-en="every school at home."></span></h1>
+        <p class="lead" data-fr="Notes, absences, bulletins PDF, cahier de texte : direction, professeurs, élèves et parents se retrouvent dans un espace sécurisé propre à leur établissement." data-en="Grades, attendance, PDF report cards, class log: administration, teachers, students and parents meet in a secure space dedicated to their school."></p>
+        <form id="code-form" class="code-form" autocomplete="off">
+          <input id="code" name="code" required maxlength="30" data-fr-ph="Code de votre établissement (ex : jean-piaget-1)" data-en-ph="Your school code (e.g. jean-piaget-1)" aria-label="Code établissement">
+          <button class="btn btn-primary" type="submit" data-fr="Accéder" data-en="Continue"></button>
+        </form>
+        <div id="msg" class="error-msg"></div>
+        <div id="continue" class="hidden mt"><a class="btn btn-gold" id="continue-link" href="/app.html" data-fr="Reprendre ma session" data-en="Resume my session"></a></div>
+        <div class="features">
+          <span class="badge blue" data-fr="Notes & moyennes" data-en="Grades & averages"></span>
+          <span class="badge green" data-fr="Bulletins PDF" data-en="PDF report cards"></span>
+          <span class="badge gold" data-fr="Suivi des absences" data-en="Attendance tracking"></span>
+          <span class="badge gray" data-fr="Français / English" data-en="Français / English"></span>
+        </div>
+      </div>
+      <div class="scene" aria-hidden="true">
+        <div class="orbit"></div>
+        <div class="cube"><div class="f1">A</div><div class="f2">B</div><div class="f3">C</div><div class="f4">D</div><div class="f5">+</div><div class="f6">20</div></div>
+      </div>
+    </section>
+  </main>
+  <footer><span data-fr="Vous gérez plusieurs établissements ?" data-en="Managing several schools?"></span> <a href="/platform.html" data-fr="Espace plateforme" data-en="Platform area"></a></footer>
+</div>
+<script type="module" src="/js/landing.js"></script>
+</body>
+</html>
