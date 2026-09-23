@@ -40,6 +40,7 @@ function drawSidebar() {
     pwd: () => changePasswordModal(false),
     logout: async () => { await api('/auth/logout', { method: 'POST', noRedirect: true }).catch(() => {}); location.href = '/'; },
   });
+  subscriptionBanner();
 }
 
 async function go(key) {

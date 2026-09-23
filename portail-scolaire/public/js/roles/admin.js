@@ -1,4 +1,4 @@
-import { api, T, h, raw, setHtml, bind, qs, fmtDate, todayStr, badge, openModal, confirmDialog, formValues, toast, errToast, showSecret, newsCard, CATEGORIES, shrinkImage, $, $$ } from '../common.js';
+import { getLang, api, T, h, raw, setHtml, bind, qs, fmtDate, todayStr, badge, openModal, confirmDialog, formValues, toast, errToast, showSecret, newsCard, CATEGORIES, shrinkImage, $, $$ } from '../common.js';
 
 const head = (title, extra = '') => h`<div class="page-head"><h1>${title}</h1><div class="actions">${extra}</div></div>`;
 const slug = (s) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.|\.$/g, '');
@@ -397,3 +397,4 @@ export default {
   ],
   views: { dashboard, users, structure, coefficients, terms, monitoring, announcements, settings },
 };
+
