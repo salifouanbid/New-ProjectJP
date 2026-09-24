@@ -103,6 +103,12 @@ SMTP_HOST=... SMTP_PORT=587 SMTP_USER=... SMTP_PASS=... SMTP_FROM="Portail <no-r
 ```
 En production les cookies sont `Secure` : le site **doit** être servi en **HTTPS**.
 
+### Migration Supabase/PostgreSQL et Vercel (en cours)
+
+Le dépôt contient désormais le schéma versionné dans `supabase/migrations/`, un client PostgreSQL serveur dans `src/persistence/postgres.js`, un importateur SQLite non destructif et le squelette Vercel. **L'application ne doit pas encore être basculée en production avec `DB_PROVIDER=postgres`** : les routes Express utilisent toujours l'API SQLite synchrone et les fichiers restent sur le disque local. Le point d'entrée Vercel refuse donc volontairement de démarrer avec SQLite plutôt que de donner une fausse impression de persistance.
+
+Consultez [`MIGRATION_STATUS.md`](MIGRATION_STATUS.md) pour l'état précis, les commandes de contrôle et l'ordre de bascule. La chaîne `DATABASE_URL` doit rester une variable serveur secrète et, sur Vercel, utiliser le **pooler transactionnel Supabase** avec TLS ; elle ne doit jamais être copiée dans le code ou exposée au navigateur.
+
 ### Sur un serveur (VPS Ubuntu, ex. ≈ 10 000 FCFA/mois)
 ```bash
 # 1. Node.js LTS + outils
