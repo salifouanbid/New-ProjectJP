@@ -8,7 +8,9 @@
     "dev": "node --watch server.js",
     "seed": "node src/seed.js",
     "backup": "node scripts/backup.js",
-    "test": "node test/smoke.js"
+    "db:migrate:postgres": "node scripts/migrate-sqlite-to-postgres.js",
+    "test": "node test/smoke.js && npm run test:postgres",
+    "test:postgres": "node test/postgres-persistence.js && node test/postgres-schema.js"
   },
   "engines": {
     "node": ">=18"
@@ -25,7 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
     "nodemailer": "^10.0.10",
-    "pdfkit": "^0.20.2"
+    "pdfkit": "^0.20.2",
+    "pg": "^8.23.0"
   },
   "optionalDependencies": {
     "better-sqlite3": "^13.0.3"

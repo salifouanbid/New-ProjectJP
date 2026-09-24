@@ -8,7 +8,7 @@ const path = require('path');
 const PORT = 3199;
 const BASE = `http://127.0.0.1:${PORT}`;
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'portail-test-'));
-const env = { ...process.env, PORT: String(PORT), DB_PATH: path.join(tmp, 't.db'), UPLOAD_DIR: path.join(tmp, 'up'), NODE_ENV: 'development', APP_URL: BASE, SMTP_HOST: '' };
+const env = { ...process.env, PORT: String(PORT), DB_PROVIDER: 'sqlite', DB_DRIVER: 'node', DB_PATH: path.join(tmp, 't.db'), UPLOAD_DIR: path.join(tmp, 'up'), NODE_ENV: 'development', APP_URL: BASE, SMTP_HOST: '' };
 const PWD = 'Demo1234!';
 const countUploads = () => { const up = path.join(tmp, 'up'); if (!fs.existsSync(up)) return 0; return fs.readdirSync(up).reduce((n, d) => n + fs.readdirSync(path.join(up, d)).length, 0); };
 
