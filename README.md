@@ -24,7 +24,7 @@ Vérifier : `node -v` (≥ 18) et `npm -v`.
 ## 2. Lancer en local (5 minutes)
 
 ```bash
-cd portail-scolaire
+cd .
 npm install            # installe les dépendances (1 fois)
 copy .env.example .env # Windows   (Mac/Linux : cp .env.example .env)
 npm run seed           # (facultatif) crée 2 établissements de démonstration
