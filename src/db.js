@@ -4,21 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 
-if (config.databaseProvider !== 'sqlite') {
-  throw new Error(
-    'Le serveur Express utilise encore des requêtes SQLite synchrones. ' +
-      'DB_PROVIDER=postgres est réservé à la prochaine phase de migration ; voir MIGRATION_STATUS.md.'
-  );
-}
-
 function openDb(file) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const want = config.dbDriver;
-  const nodeMajor = Number(process.versions.node.split('.')[0]);
 
-  // Le module natif peut être installé sans binaire réellement compatible avec une
-  // version Node non-LTS. En mode auto, node:sqlite est plus sûr à partir de Node 22.
-  if (want === 'better-sqlite3' || (want === 'auto' && nodeMajor < 22)) {
+  if (want === 'auto' || want === 'better-sqlite3') {
     try {
       const Database = require('better-sqlite3');
       const db = new Database(file);

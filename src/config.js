@@ -3,13 +3,6 @@ require('dotenv').config({ quiet: true });
 
 const root = path.join(__dirname, '..');
 const isProd = process.env.NODE_ENV === 'production';
-const databaseProvider = (process.env.DB_PROVIDER || 'sqlite').toLowerCase();
-if (!['sqlite', 'postgres'].includes(databaseProvider)) {
-  throw new Error('DB_PROVIDER doit valoir sqlite ou postgres');
-}
-if (databaseProvider === 'postgres' && !process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL est obligatoire quand DB_PROVIDER=postgres');
-}
 
 const config = {
   root,
@@ -19,8 +12,6 @@ const config = {
   trustProxy: parseInt(process.env.TRUST_PROXY || (isProd ? '1' : '0'), 10),
   appUrl: (process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, ''),
   jwtSecret: process.env.JWT_SECRET || '',
-  databaseProvider,
-  databaseUrl: process.env.DATABASE_URL || '',
   dbPath: path.resolve(root, process.env.DB_PATH || './data/portail.db'),
   dbDriver: process.env.DB_DRIVER || 'auto',
   uploadDir: path.resolve(root, process.env.UPLOAD_DIR || './uploads'),
