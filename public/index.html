@@ -1,176 +1,254 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Pochettes, coques incassables, chargeurs et écouteurs à Abomey-Calavi. Commande sur WhatsApp, livraison rapide, paiement à la réception.">
-<meta name="theme-color" content="#1B2A4A">
-<title>Pochettes Chic — Vitrine &amp; Commande WhatsApp</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Portail Scolaire — Le suivi scolaire que vos parents utilisent vraiment</title>
+  <meta name="description" content="Notes, absences, bulletins PDF et actualités : un portail pour votre établissement, avec un espace dédié pour la direction, les professeurs, les élèves et les parents.">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/landing.css">
+  <script src="/js/theme-init.js"></script>
 </head>
 <body>
-<div class="container">
+<div class="public">
 
-<header>
-  <div class="nav">
-    <div class="brand">Pochettes Chic</div>
-    <a class="nav-cta" id="navOrder" href="#" target="_blank" rel="noopener">Commander sur WhatsApp</a>
-  </div>
-</header>
-
-<div class="promo">🎉 Offre de lancement ce mois-ci : <span>-10% sur toute commande via ce site</span></div>
-
-<section class="hero">
-  <div class="wrap hero-inner">
-    <div>
-      <h1>Pochettes, coques incassables et chargeurs de qualité, livrés à deux pas de chez vous.</h1>
-      <p class="sub">Découvrez le catalogue, choisissez votre modèle préféré et passez commande directement sur WhatsApp — livraison rapide, paiement à la réception.</p>
-      <div class="cta-row">
-        <a class="btn btn-primary" href="#catalogue">Voir le catalogue</a>
-        <a class="btn btn-secondary" href="#contact">Où me trouver</a>
+  <!-- ================= NAVIGATION ================= -->
+  <header class="navbar">
+    <a class="brand" href="/" style="display:flex;align-items:center;gap:.6rem;text-decoration:none;color:inherit">
+      <div class="logo">PS</div>
+      <span class="name" style="font-weight:800">Portail Scolaire</span>
+    </a>
+    <button class="mobile-toggle" id="menu-toggle" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-menu" id="nav-menu">
+      <nav class="nav-links">
+        <a href="#fonctionnalites" data-fr="Fonctionnalités" data-en="Features"></a>
+        <a href="#tarifs" data-fr="Tarifs" data-en="Pricing"></a>
+        <a href="#securite" data-fr="Sécurité" data-en="Security"></a>
+        <a href="#faq" data-fr="FAQ" data-en="FAQ"></a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn-login-link" href="#acceder" data-fr="Se connecter" data-en="Sign in"></a>
+        <button class="theme-btn" id="theme-toggle" type="button" aria-label="Changer de thème">🌗</button>
+        <div data-lang-switch></div>
+        <a class="btn btn-primary" id="wa-nav" href="#" target="_blank" rel="noopener" data-fr="💬 Demander une démo" data-en="💬 Request a demo"></a>
       </div>
     </div>
-    <div class="swatch-grid" aria-hidden="true">
-      <div class="swatch s1"><img alt="" loading="lazy" src="images/pochettes/1500_Pochette-iphone-11.jpg"></div>
-      <div class="swatch s2"><img alt="" loading="lazy" src="images/pochettes/2000_Pochette-a-une-main.jpg"></div>
-      <div class="swatch s3"><img alt="" loading="lazy" src="images/pochettes/2000_Pochette-iphone-13.jpg"></div>
-      <div class="swatch s4"><img alt="" loading="lazy" src="images/pochettes/2500_Pochette-iphone-13-pro.jpg"></div>
-      <div class="swatch s5"><img alt="" loading="lazy" src="images/pochettes/2500_Pochette-iphone.jpg"></div>
-      <div class="swatch s6"><img alt="" loading="lazy" src="images/pochettes/3000_Pochette-iphone-design-bois.jpg"></div>
-    </div>
-  </div>
-</section>
+  </header>
 
-<section id="catalogue">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Le catalogue</h2>
-      <p>Chaque modèle est disponible en stock limité. Cliquez sur "Commander" pour réserver le vôtre directement sur WhatsApp.</p>
-    </div>
-    <div>
-      <h3>Les pochettes</h3>
-      <div class="grid" id="catalogueGrid"></div>
-    </div>
-    <div>
-      <h3>Chargeurs et écouteurs sans fil</h3>
-      <div class="grid" id="chargeurGrid"></div>
-    </div>
-    <div>
-      <h3>Coques incassables, haute résistance</h3>
-      <div class="grid" id="incassableGrid"></div>
-    </div>
-  </div>
-</section>
-
-<section id="pourquoi" style="background:var(--card-bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Pourquoi commander ici</h2>
-    </div>
-    <div class="trust-grid">
-      <div class="trust-item"><div class="num">100%</div><p>Sélectionné pièce par pièce</p></div>
-      <div class="trust-item"><div class="num">24h</div><p>Livraison rapide sur Abomey-Calavi et Cotonou</p></div>
-      <div class="trust-item"><div class="num">0F</div><p>Paiement à la livraison, sans risque</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="avis">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Ce que disent nos clients</h2>
-      <p>Des vrais retours de clients servis, sur le site, le vendeur et la marchandise.</p>
-    </div>
-    <div class="grid" id="temoignagesGrid"></div>
-    <div class="cta-row" style="margin-top:24px;">
-      <a class="btn btn-secondary" href="#laisser-avis">Laisser mon avis</a>
-    </div>
-  </div>
-</section>
-
-<section id="laisser-avis" style="background:var(--card-bg);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Vous venez d'être servi ?</h2>
-      <p>Notez votre expérience en 30 secondes — ça part directement au vendeur sur WhatsApp.</p>
-    </div>
-    <form id="reviewForm" class="review-form">
-      <div class="field">
-        <label for="reviewName">Votre nom</label>
-        <input type="text" id="reviewName" name="reviewName" required>
+  <main>
+    <!-- ================= HERO ================= -->
+    <section class="lp-hero">
+      <div class="lp-badge">🚀 <span data-fr="Nouveau · essai gratuit de 60 jours, sans carte" data-en="New · 60-day free trial, no card needed"></span></div>
+      <h1>
+        <span data-fr="Vos bulletins en 5 minutes." data-en="Your report cards in 5 minutes."></span><br>
+        <span data-fr="Vos parents informés en 1 minute." data-en="Your parents informed in 1 minute."></span>
+      </h1>
+      <p class="lead" data-fr="Un portail scolaire pour votre établissement : notes, moyennes, absences, bulletins PDF et actualités. La direction, les professeurs, les élèves et les parents s'y retrouvent, chacun dans son espace, en français et en anglais." data-en="A school portal for your institution: grades, averages, attendance, PDF report cards and news. Administration, teachers, students and parents each get their own space, in French and English."></p>
+      <div class="lp-cta-row">
+        <a class="btn btn-primary" id="wa-hero" href="#" target="_blank" rel="noopener" data-fr="💬 Demander une démo (WhatsApp)" data-en="💬 Request a demo (WhatsApp)"></a>
+        <a class="btn" href="#acceder" data-fr="Voir comment ça marche" data-en="See how it works"></a>
+      </div>
+      <div class="lp-trust">
+        <span class="badge blue" data-fr="Notes & moyennes" data-en="Grades & averages"></span>
+        <span class="badge green" data-fr="Bulletins PDF" data-en="PDF report cards"></span>
+        <span class="badge gold" data-fr="Suivi des absences" data-en="Attendance tracking"></span>
+        <span class="badge gray" data-fr="Français / English" data-en="Français / English"></span>
       </div>
 
-      <div class="field">
-        <span class="field-label">Note du site</span>
-        <div class="stars" data-target="siteNote"></div>
+      <!-- Accès existant : discret, pour ne pas noyer le message destiné aux directeurs -->
+      <details class="lp-access card" id="acceder">
+        <summary data-fr="Votre établissement utilise déjà le portail ? Accédez à votre espace" data-en="Already using the portal? Access your school space"></summary>
+        <form id="code-form" class="code-form" autocomplete="off">
+          <input id="code" name="code" required maxlength="30" data-fr-ph="Code de votre établissement (ex : jean-piaget-1)" data-en-ph="Your school code (e.g. jean-piaget-1)" aria-label="Code établissement">
+          <button class="btn btn-primary" type="submit" data-fr="Accéder" data-en="Continue"></button>
+        </form>
+        <div id="msg" class="error-msg"></div>
+        <div id="continue" class="hidden mt"><a class="btn btn-gold" id="continue-link" href="/app.html" data-fr="Reprendre ma session" data-en="Resume my session"></a></div>
+      </details>
+    </section>
+
+    <!-- ================= LE PROBLÈME ================= -->
+    <section class="lp-section">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="Le constat" data-en="The problem"></div>
+        <h2 data-fr="Le papier et Excel ont leurs limites" data-en="Paper and Excel have their limits"></h2>
       </div>
-      <div class="field">
-        <span class="field-label">Note du vendeur</span>
-        <div class="stars" data-target="vendeurNote"></div>
+      <div class="lp-problems">
+        <div class="lp-problem card"><div class="ico">📚</div>
+          <h3 data-fr="Bulletins qui prennent des jours" data-en="Report cards that take days"></h3>
+          <p data-fr="Calculs de moyennes à la main, mise en page recommencée chaque trimestre, risques d'erreur." data-en="Averages computed by hand, layout redone every term, room for error."></p></div>
+        <div class="lp-problem card"><div class="ico">📵</div>
+          <h3 data-fr="Parents informés trop tard" data-en="Parents informed too late"></h3>
+          <p data-fr="Une absence ou une moyenne en baisse se découvre parfois... à la fin du trimestre." data-en="An absence or a falling average is sometimes discovered... at the end of the term."></p></div>
+        <div class="lp-problem card"><div class="ico">🗂️</div>
+          <h3 data-fr="Informations éparpillées" data-en="Scattered information"></h3>
+          <p data-fr="Cahiers, tableurs, messages WhatsApp : personne n'a la même version des données." data-en="Notebooks, spreadsheets, WhatsApp messages: nobody has the same version of the data."></p></div>
       </div>
-      <div class="field">
-        <span class="field-label">Note de la marchandise</span>
-        <div class="stars" data-target="marchandiseNote"></div>
+    </section>
+
+    <!-- ================= FONCTIONNALITÉS / CAPTURES ================= -->
+    <section class="lp-section alt" id="fonctionnalites">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="La solution" data-en="The solution"></div>
+        <h2 data-fr="Un espace pour chacun, sur son téléphone" data-en="A space for everyone, on their phone"></h2>
+        <p data-fr="De vraies captures du portail — pas des maquettes." data-en="Real screenshots of the portal — not mockups."></p>
       </div>
-
-      <div class="field">
-        <label for="reviewComment">Un commentaire (facultatif)</label>
-        <textarea id="reviewComment" name="reviewComment" rows="3"></textarea>
+      <div class="lp-shots">
+        <figure class="lp-shot card">
+          <img src="/img/apercu-parent.jpg" alt="Tableau de bord parent sur téléphone" loading="lazy">
+          <figcaption><b data-fr="Suivi parental en temps réel" data-en="Real-time parent follow-up"></b>
+            <span data-fr="Moyenne, rang, évolution et bulletin, sur téléphone." data-en="Average, rank, trend and report card, on mobile."></span></figcaption>
+        </figure>
+        <figure class="lp-shot card">
+          <img src="/img/apercu-professeur.jpg" alt="Saisie des notes par un professeur" loading="lazy">
+          <figcaption><b data-fr="Saisie des notes simplifiée" data-en="Simplified grade entry"></b>
+            <span data-fr="Moyenne calculée en direct, sauvegarde sécurisée." data-en="Live average calculation, secure saving."></span></figcaption>
+        </figure>
+        <figure class="lp-shot card">
+          <img src="/img/apercu-vitrine.jpg" alt="Page publique d'un établissement" loading="lazy">
+          <figcaption><b data-fr="Une page pour votre établissement" data-en="A page for your school"></b>
+            <span data-fr="Actualités, événements et contacts, visibles sans connexion." data-en="News, events and contacts, visible without signing in."></span></figcaption>
+        </figure>
+        <figure class="lp-shot card">
+          <img src="/img/apercu-bulletin.jpg" alt="Bulletin PDF généré automatiquement" loading="lazy">
+          <figcaption><b data-fr="Bulletin PDF automatique" data-en="Automatic PDF report card"></b>
+            <span data-fr="Moyennes, rang et appréciation, générés en un clic." data-en="Averages, rank and remarks, generated in one click."></span></figcaption>
+        </figure>
       </div>
+    </section>
 
-      <button type="submit" class="btn btn-primary">Envoyer mon avis sur WhatsApp</button>
-      <p class="form-note" id="formNote"></p>
-    </form>
-  </div>
-</section>
+    <!-- ================= CALCULATEUR ================= -->
+    <section class="lp-section">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="À quoi bon ?" data-en="Why bother?"></div>
+        <h2 data-fr="Le temps que vous pourriez gagner" data-en="The time you could save"></h2>
+      </div>
+      <div class="lp-calc card">
+        <div>
+          <div class="field">
+            <label for="calc-students" data-fr="Nombre d'élèves" data-en="Number of students"></label>
+            <input type="range" id="calc-students" min="50" max="1200" step="10" value="300">
+            <div class="muted small"><span id="calc-students-val">300</span> <span data-fr="élèves" data-en="students"></span></div>
+          </div>
+          <p class="lp-calc-note" data-fr="Estimation basée sur environ 4 minutes gagnées par élève et par trimestre sur la préparation des bulletins et le suivi des absences. À ajuster selon votre établissement." data-en="Estimate based on about 4 minutes saved per student per term on report cards and attendance follow-up. Adjust to your own school."></p>
+        </div>
+        <div class="lp-calc-result">
+          <div class="num" id="calc-hours">—</div>
+          <div class="lbl" data-fr="heures gagnées par trimestre pour le secrétariat" data-en="hours saved per term for the office"></div>
+        </div>
+      </div>
+    </section>
 
-<section id="contact">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>Où me trouver</h2>
-      <p>Passez me voir, ou suivez votre livraison en direct avec le code reçu à la commande.</p>
-    </div>
-    <form id="trackForm" class="track-form">
-      <label for="trackCode" class="sr-only">Code de commande</label>
-      <input id="trackCode" placeholder="Code de commande (ex. PC-7K4M2Q)" autocomplete="off" maxlength="9">
-      <button class="btn btn-primary" type="submit">Suivre ma livraison</button>
-      <button class="btn btn-secondary" type="button" id="locateBtn">Ma position</button>
-    </form>
-    <p id="trackStatus" class="track-status" role="status" aria-live="polite"></p>
-    <div id="contact-map" class="contact-map-container" role="region" aria-label="Carte de suivi de livraison"></div>
-    <div class="cta-row">
-      <a class="btn btn-primary order-link" href="#" target="_blank" rel="noopener">Écrire sur WhatsApp</a>
-    </div>
-  </div>
-</section>
+    <!-- ================= TARIFS ================= -->
+    <section class="lp-section alt" id="tarifs">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="Tarifs de lancement" data-en="Launch pricing"></div>
+        <h2 data-fr="Un prix simple, sans commission" data-en="Simple pricing, no commission"></h2>
+        <p data-fr="0 % prélevé sur la scolarité. Frais d'installation et de formation offerts en paiement annuel." data-en="0% taken from tuition fees. Setup and training fees waived on annual billing."></p>
+      </div>
+      <div class="lp-billing-toggle">
+        <button type="button" id="bill-monthly" class="on" data-fr="Mensuel" data-en="Monthly"></button>
+        <button type="button" id="bill-annual" data-fr="Annuel" data-en="Annual"></button>
+        <span class="save" data-fr="(2 mois offerts)" data-en="(2 months free)"></span>
+      </div>
+      <div class="lp-plans" id="lp-plans">
+        <!-- Rempli par landing.js à partir d'une seule liste de prix (facile à modifier) -->
+      </div>
+      <p class="lp-pricing-note" data-fr="Tarifs indicatifs pour le lancement, pouvant être ajustés établissement par établissement." data-en="Indicative launch pricing, may be adjusted school by school."></p>
+    </section>
 
-<footer>
-  <div class="wrap">
-    <div>
-      <h3>Pochettes Chic</h3>
-      <p class="foot-link">Vendeur ambulant de pochettes — Abomey-Calavi, Bénin.</p>
-    </div>
-    <div>
-      <h3>Contact</h3>
-      <a class="foot-link" id="footWhatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>
-    </div>
-    <div>
-      <h3>Horaires</h3>
-      <p class="foot-link">Tous les jours, 9h — 19h</p>
-    </div>
-  </div>
-  <div class="wrap fine">Site vitrine — © <span id="year"></span> Pochettes Chic.</div>
-</footer>
+    <!-- ================= SÉCURITÉ ================= -->
+    <section class="lp-section" id="securite">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="Confiance" data-en="Trust"></div>
+        <h2 data-fr="Vos données, bien gardées" data-en="Your data, well kept"></h2>
+      </div>
+      <div class="lp-security">
+        <div class="item card"><div class="ico">🔒</div><div><h3 data-fr="Établissements isolés" data-en="Isolated schools"></h3><p data-fr="Chaque établissement a ses propres données, jamais visibles par un autre." data-en="Each school has its own data, never visible to another."></p></div></div>
+        <div class="item card"><div class="ico">🔑</div><div><h3 data-fr="Mots de passe protégés" data-en="Protected passwords"></h3><p data-fr="Jamais stockés en clair ; sessions sécurisées." data-en="Never stored in plain text; secure sessions."></p></div></div>
+        <div class="item card"><div class="ico">💾</div><div><h3 data-fr="Sauvegardes régulières" data-en="Regular backups"></h3><p data-fr="Vos notes et bulletins sont sauvegardés automatiquement." data-en="Your grades and report cards are backed up automatically."></p></div></div>
+        <div class="item card"><div class="ico">🌍</div><div><h3 data-fr="Accessible partout" data-en="Accessible everywhere"></h3><p data-fr="Sur téléphone, tablette ou ordinateur, en français ou en anglais." data-en="On phone, tablet or computer, in French or English."></p></div></div>
+      </div>
+    </section>
 
+    <!-- ================= FAQ ================= -->
+    <section class="lp-section alt" id="faq">
+      <div class="lp-head">
+        <div class="lp-eyebrow" data-fr="Questions fréquentes" data-en="Frequently asked questions"></div>
+        <h2 data-fr="Tout ce que vous vous demandez" data-en="Everything you're wondering"></h2>
+      </div>
+      <div class="lp-faq" id="lp-faq">
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" data-fr="Puis-je essayer avant de payer ?" data-en="Can I try before paying?"></button>
+          <div class="lp-faq-a" data-fr="Oui : 60 jours d'essai gratuit, sans carte bancaire, jusqu'à 100 élèves." data-en="Yes: a 60-day free trial, no credit card, up to 100 students."></div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" data-fr="Mes données sont-elles séparées des autres écoles ?" data-en="Is my data separated from other schools?"></button>
+          <div class="lp-faq-a" data-fr="Oui, complètement. Chaque établissement a son propre espace et son propre code de connexion." data-en="Yes, completely. Each school has its own space and its own login code."></div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" data-fr="Que se passe-t-il si je ne renouvelle pas ?" data-en="What happens if I don't renew?"></button>
+          <div class="lp-faq-a" data-fr="Le site passe en lecture seule : vos notes restent consultables, mais plus aucune modification n'est possible tant que l'abonnement n'est pas renouvelé." data-en="The site switches to read-only: your grades stay viewable, but no changes are possible until the subscription is renewed."></div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" data-fr="Peut-on changer de formule plus tard ?" data-en="Can we change plans later?"></button>
+          <div class="lp-faq-a" data-fr="Oui, à tout moment, en fonction du nombre d'élèves de votre établissement." data-en="Yes, at any time, based on your school's number of students."></div>
+        </div>
+        <div class="lp-faq-item">
+          <button class="lp-faq-q" data-fr="Comment démarre-t-on ?" data-en="How do we get started?"></button>
+          <div class="lp-faq-a" data-fr="Vous nous contactez sur WhatsApp, nous créons votre établissement et importons vos listes : comptez environ une journée." data-en="You contact us on WhatsApp, we create your school and import your lists: about one day."></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= CTA FINAL ================= -->
+    <section class="lp-section">
+      <div class="lp-final">
+        <h2 data-fr="Prêt à essayer avec votre établissement ?" data-en="Ready to try it with your school?"></h2>
+        <p data-fr="Une démonstration de 10 minutes suffit pour voir si ça vous convient." data-en="A 10-minute demo is enough to see if it fits."></p>
+        <a class="btn btn-primary" id="wa-final" href="#" target="_blank" rel="noopener" data-fr="💬 Discuter sur WhatsApp" data-en="💬 Chat on WhatsApp"></a>
+      </div>
+    </section>
+  </main>
+
+  <!-- ================= PIED DE PAGE ================= -->
+  <footer class="lp-footer">
+    <div class="lp-footer-grid">
+      <div>
+        <div class="brand" style="margin-bottom:.6rem"><div class="logo">PS</div><div class="name" style="font-weight:800">Portail Scolaire</div></div>
+        <p class="muted small" data-fr="Le suivi scolaire que vos parents utilisent vraiment." data-en="The school follow-up your parents actually use."></p>
+      </div>
+      <div>
+        <h4 data-fr="Produit" data-en="Product"></h4>
+        <a href="#fonctionnalites" data-fr="Fonctionnalités" data-en="Features"></a>
+        <a href="#tarifs" data-fr="Tarifs" data-en="Pricing"></a>
+        <a href="#securite" data-fr="Sécurité" data-en="Security"></a>
+      </div>
+      <div>
+        <h4 data-fr="Établissements" data-en="Schools"></h4>
+        <a href="#acceder" data-fr="Se connecter" data-en="Sign in"></a>
+        <a href="/platform.html" data-fr="Espace plateforme" data-en="Platform area"></a>
+      </div>
+      <div>
+        <h4 data-fr="Légal" data-en="Legal"></h4>
+        <a href="/legal/mentions-legales.html" data-fr="Mentions légales" data-en="Legal notice"></a>
+        <a href="/legal/confidentialite.html" data-fr="Confidentialité" data-en="Privacy"></a>
+        <a href="/legal/cgu.html" data-fr="CGU" data-en="Terms of use"></a>
+      </div>
+    </div>
+    <div class="lp-footer-bottom">
+      <span>© <span id="year"></span> Portail Scolaire</span>
+      <span data-fr="Fait avec ❤ pour les écoles du Bénin" data-en="Made with ❤ for schools in Benin"></span>
+    </div>
+  </footer>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js"></script>
-<script src="suivi.js"></script>
-<script src="script.js"></script>
+<a class="wa-float" id="wa-float" href="#" target="_blank" rel="noopener">
+  <span aria-hidden="true">💬</span><span class="txt" data-fr="Discuter sur WhatsApp" data-en="Chat on WhatsApp"></span>
+</a>
+
+<script type="module" src="/js/landing.js"></script>
 </body>
 </html>
