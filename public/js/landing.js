@@ -1,3 +1,4 @@
+
 import { api, T, h, setHtml, applyI18n, $, $$ } from './common.js';
 
 /* ==========================================================================
@@ -51,12 +52,31 @@ if (codeForm) {
   });
 }
 
+import { api, T, applyI18n, $ } from './common.js';
+
+applyI18n();
+document.addEventListener('langchange', () => applyI18n());
+
+$('#code-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('#code').value.trim().toLowerCase();
+  $('#msg').textContent = '';
+  try {
+    const s = await api('/public/school/' + encodeURIComponent(code), { noRedirect: true });
+    location.href = '/e/' + encodeURIComponent(s.code);
+  } catch (err) {
+    $('#msg').textContent = err.status === 404 ? T("Code introuvable. Vérifiez auprès de votre établissement.", 'Code not found. Please check with your school.') : err.message;
+  }
+});
+//3af1208908ff43e73e5c9011e91897984e8b8451
+
 api('/auth/me', { noRedirect: true }).then((r) => {
   if (r.user) {
     $('#continue').classList.remove('hidden');
     $('#continue-link').href = r.user.role === 'superadmin' ? '/platform.html' : '/app.html';
   }
 }).catch(() => {});
+
 
 /* ==========================================================================
    Menu mobile (burger)
@@ -148,3 +168,5 @@ $$('.lp-faq-item').forEach((item) => {
 /* Année du copyright, sans y penser chaque janvier */
 const yearEl = $('#year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
+//=======
+ //3af1208908ff43e73e5c9011e91897984e8b8451
