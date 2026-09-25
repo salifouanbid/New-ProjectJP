@@ -1,0 +1,170 @@
+/* ==========================================================================
+   Feuille de style DÉDIÉE à la page marketing (public/index.html).
+   Elle ne touche à rien de /css/style.css : les tableaux de bord (app.html,
+   platform.html) continuent d'utiliser exactement le même style qu'avant.
+   Les couleurs (--navy, --cyan, --gold…) sont les MÊMES variables que le
+   reste du site : la page reste cohérente avec l'espace connecté.
+   ========================================================================== */
+
+/* ---------- Bascule clair / sombre (réelle, contrairement à l'essai précédent) ---------- */
+:root[data-theme="light"] {
+  --bg: #f4f7fd; --bg2: #eef2fb; --text: #10182b; --muted: #5b6478;
+  --glass: rgba(11, 26, 58, 0.04); --glass-2: rgba(11, 26, 58, 0.07); --line: rgba(11, 26, 58, 0.12);
+  --navy: #0b1a3a;
+}
+:root[data-theme="light"] body { background-image: none; background-color: var(--bg); }
+:root[data-theme="light"] .navbar { background: rgba(255, 255, 255, 0.85); border-bottom-color: var(--line); }
+:root[data-theme="light"] .lp-card, :root[data-theme="light"] .card { box-shadow: 0 10px 30px rgba(11, 26, 58, .08); }
+
+/* ---------- Barre de navigation ---------- */
+.navbar {
+  position: sticky; top: 0; z-index: 500;
+  display: flex; align-items: center; gap: 1.2rem;
+  padding: .8rem clamp(1rem, 4vw, 3rem);
+  background: rgba(7, 13, 31, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+.navbar .brand { text-decoration: none; }
+.nav-links { display: flex; align-items: center; gap: 1.6rem; flex: 1; margin-left: 1rem; }
+.nav-links a { color: var(--muted); font-weight: 600; font-size: .95rem; text-decoration: none; }
+.nav-links a:hover { color: var(--text); }
+.nav-actions { display: flex; align-items: center; gap: .7rem; }
+.theme-btn {
+  background: var(--glass-2); border: 1px solid var(--line); color: var(--text);
+  width: 38px; height: 38px; border-radius: 10px; cursor: pointer; font-size: 1.05rem; line-height: 1;
+}
+.mobile-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: 0; cursor: pointer; padding: 4px; }
+.mobile-toggle span { width: 22px; height: 2px; border-radius: 2px; background: var(--text); }
+
+@media (max-width: 880px) {
+  .mobile-toggle { display: flex; }
+  .nav-links, .btn-login-link { display: none; }
+  .navbar .brand .name { white-space: nowrap; }
+  .nav-menu.open .nav-links {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;
+    width: 100%; padding: 1.2rem clamp(1rem,4vw,3rem) 1.5rem;
+    background: #0b1330; border-bottom: 1px solid var(--line);
+  }
+  .navbar { flex-wrap: wrap; }
+  .nav-menu.open .btn-login-link { display: inline-flex; }
+}
+
+/* ---------- Hero ---------- */
+.lp-hero { max-width: 1100px; margin: 0 auto; padding: clamp(2.4rem,6vw,4.5rem) clamp(1rem,4vw,2rem) 1rem; text-align: center; }
+.lp-badge {
+  display: inline-flex; align-items: center; gap: .4rem; padding: .35rem 1rem; border-radius: 999px;
+  border: 1px solid rgba(245, 197, 66, .4); background: rgba(245, 197, 66, .1); color: #fde9a6; font-size: .85rem; font-weight: 700;
+  margin-bottom: 1.4rem;
+}
+.lp-hero h1 { font-size: clamp(2.1rem, 5.4vw, 3.4rem); line-height: 1.16; margin-bottom: 1.1rem; }
+.lp-hero h1 span { background: linear-gradient(90deg, var(--gold), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lp-hero .lead { max-width: 46rem; margin: 0 auto 1.8rem; color: var(--muted); font-size: 1.12rem; line-height: 1.6; }
+.lp-cta-row { display: flex; flex-wrap: wrap; gap: .8rem; justify-content: center; margin-bottom: 1.6rem; }
+.lp-cta-row .btn { font-size: 1rem; padding: .8rem 1.5rem; }
+.lp-trust { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; margin-bottom: 2.2rem; }
+
+/* Formulaire "accéder à mon établissement" : présent mais volontairement discret (secondaire) */
+.lp-access { max-width: 30rem; margin: 0 auto; padding: 1rem 1.2rem; }
+.lp-access summary { cursor: pointer; color: var(--muted); font-size: .92rem; font-weight: 600; list-style: none; }
+.lp-access summary::-webkit-details-marker { display: none; }
+.lp-access summary::before { content: '▸ '; }
+.lp-access[open] summary::before { content: '▾ '; }
+.lp-access .code-form { display: flex; gap: .5rem; margin-top: .8rem; flex-wrap: wrap; }
+.lp-access .code-form input { flex: 1 1 200px; }
+
+/* ---------- Sections génériques ---------- */
+.lp-section { max-width: 1100px; margin: 0 auto; padding: clamp(2.4rem,5vw,3.6rem) clamp(1rem,4vw,2rem); }
+.lp-section.alt { background: var(--glass); border-radius: 28px; }
+.lp-head { text-align: center; max-width: 40rem; margin: 0 auto 2.4rem; }
+.lp-head h2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); margin-bottom: .6rem; }
+.lp-head p { color: var(--muted); font-size: 1.02rem; }
+.lp-eyebrow { color: var(--cyan); font-weight: 700; font-size: .82rem; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .5rem; }
+
+/* ---------- Le problème ---------- */
+.lp-problems { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.lp-problem { padding: 1.4rem; }
+.lp-problem .ico { font-size: 1.8rem; margin-bottom: .6rem; }
+.lp-problem h3 { font-size: 1.05rem; margin-bottom: .4rem; }
+.lp-problem p { color: var(--muted); font-size: .95rem; line-height: 1.5; }
+
+/* ---------- Captures du produit ---------- */
+.lp-shots { display: grid; gap: 1.6rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: start; }
+.lp-shot { overflow: hidden; padding: 0; }
+.lp-shot img { display: block; width: 100%; height: 260px; object-fit: cover; object-position: top; border-bottom: 1px solid var(--line); }
+.lp-shot figcaption { padding: 1rem 1.1rem 1.2rem; }
+.lp-shot figcaption b { display: block; margin-bottom: .25rem; font-size: 1rem; }
+.lp-shot figcaption span { color: var(--muted); font-size: .88rem; }
+
+/* ---------- Calculateur ---------- */
+.lp-calc { display: grid; gap: 2rem; grid-template-columns: 1fr 1fr; align-items: center; }
+.lp-calc .field { margin-bottom: 1rem; }
+.lp-calc-result { text-align: center; padding: 1.6rem; }
+.lp-calc-result .num { font-size: 2.6rem; font-weight: 800; color: var(--cyan); line-height: 1.1; }
+.lp-calc-result .lbl { color: var(--muted); margin-top: .3rem; }
+.lp-calc-note { font-size: .8rem; color: var(--muted); margin-top: .8rem; }
+@media (max-width: 760px) { .lp-calc { grid-template-columns: 1fr; } }
+
+/* ---------- Tarifs ---------- */
+.lp-billing-toggle { display: flex; justify-content: center; align-items: center; gap: .7rem; margin-bottom: 2rem; }
+.lp-billing-toggle button {
+  border: 1px solid var(--line); background: var(--glass); color: var(--muted); padding: .5rem 1.1rem;
+  border-radius: 999px; cursor: pointer; font: inherit; font-weight: 700; font-size: .88rem;
+}
+.lp-billing-toggle button.on { background: var(--cyan); color: #041018; border-color: var(--cyan); }
+.lp-billing-toggle .save { color: var(--gold); font-size: .82rem; font-weight: 700; }
+.lp-plans { display: grid; gap: 1.2rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); align-items: stretch; }
+.lp-plan { display: flex; flex-direction: column; padding: 1.6rem 1.4rem; position: relative; }
+.lp-plan.feat { border-color: rgba(245, 197, 66, .5); box-shadow: 0 0 0 1px rgba(245, 197, 66, .3), var(--shadow); }
+.lp-plan .tag { position: absolute; top: -12px; right: 1.2rem; background: var(--gold); color: #241a00; font-size: .74rem; font-weight: 800; padding: .2rem .6rem; border-radius: 999px; }
+.lp-plan h3 { font-size: 1.05rem; margin-bottom: .3rem; }
+.lp-plan .price { font-size: 1.9rem; font-weight: 800; margin: .4rem 0 .1rem; }
+.lp-plan .price small { font-size: .95rem; font-weight: 600; color: var(--muted); }
+.lp-plan .cap { color: var(--muted); font-size: .85rem; margin-bottom: 1rem; }
+.lp-plan ul { list-style: none; flex: 1; margin-bottom: 1.2rem; }
+.lp-plan li { font-size: .9rem; padding: .35rem 0 .35rem 1.4rem; position: relative; color: var(--text); }
+.lp-plan li::before { content: '✓'; position: absolute; left: 0; color: var(--green); font-weight: 800; }
+.lp-pricing-note { text-align: center; color: var(--muted); font-size: .85rem; margin-top: 1.6rem; }
+
+/* ---------- Sécurité ---------- */
+.lp-security { display: grid; gap: 1.1rem; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.lp-security .item { display: flex; gap: .8rem; padding: 1.1rem; align-items: flex-start; }
+.lp-security .item .ico { font-size: 1.4rem; }
+.lp-security .item h3 { font-size: .98rem; margin-bottom: .25rem; }
+.lp-security .item p { color: var(--muted); font-size: .86rem; line-height: 1.45; }
+
+/* ---------- FAQ ---------- */
+.lp-faq { max-width: 46rem; margin: 0 auto; }
+.lp-faq-item { border-bottom: 1px solid var(--line); }
+.lp-faq-q {
+  width: 100%; text-align: left; background: none; border: 0; color: var(--text); font: inherit; font-weight: 700;
+  font-size: 1rem; padding: 1.1rem 1.8rem 1.1rem 0; cursor: pointer; position: relative;
+}
+.lp-faq-q::after { content: '+'; position: absolute; right: 0; top: 1.05rem; font-size: 1.3rem; color: var(--cyan); transition: transform .2s; }
+.lp-faq-item.open .lp-faq-q::after { transform: rotate(45deg); }
+.lp-faq-a { max-height: 0; overflow: hidden; color: var(--muted); font-size: .94rem; line-height: 1.55; transition: max-height .25s ease; }
+.lp-faq-item.open .lp-faq-a { max-height: 240px; padding-bottom: 1.1rem; }
+
+/* ---------- Bandeau CTA final ---------- */
+.lp-final { text-align: center; padding: clamp(2.6rem,5vw,3.6rem) 1.5rem; border-radius: 28px; margin: 0 auto; max-width: 1100px;
+  background: linear-gradient(135deg, rgba(34,211,238,.14), rgba(245,197,66,.1)); border: 1px solid var(--line); }
+.lp-final h2 { font-size: clamp(1.5rem, 3vw, 2rem); margin-bottom: .6rem; }
+.lp-final p { color: var(--muted); margin-bottom: 1.4rem; }
+
+/* ---------- Pied de page ---------- */
+.lp-footer { max-width: 1100px; margin: 0 auto; padding: 2.6rem clamp(1rem,4vw,2rem) 2rem; }
+.lp-footer-grid { display: grid; gap: 2rem; grid-template-columns: 2fr repeat(3, 1fr); margin-bottom: 2rem; }
+.lp-footer-grid h4 { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .8rem; }
+.lp-footer-grid a { display: block; color: var(--text); text-decoration: none; font-size: .92rem; margin-bottom: .55rem; opacity: .85; }
+.lp-footer-grid a:hover { opacity: 1; text-decoration: underline; }
+.lp-footer-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .8rem; padding-top: 1.6rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+@media (max-width: 760px) { .lp-footer-grid { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- Bouton WhatsApp flottant ---------- */
+.wa-float {
+  position: fixed; right: 1.1rem; bottom: 1.1rem; z-index: 400;
+  display: flex; align-items: center; gap: .5rem; padding: .8rem 1.1rem; border-radius: 999px;
+  background: #25d366; color: #06210f; font-weight: 800; text-decoration: none; box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+.wa-float span.txt { font-size: .88rem; }
+@media (max-width: 560px) { .wa-float span.txt { display: none; } .wa-float { padding: .8rem; } }
+@media (max-width: 520px) { #wa-nav { display: none; } }
