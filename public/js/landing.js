@@ -1,11 +1,10 @@
-
 import { api, T, h, setHtml, applyI18n, $, $$ } from './common.js';
 
 /* ==========================================================================
    RÉGLAGES À PERSONNALISER — tout est ici, en un seul endroit.
    ========================================================================== */
 // Ton numéro WhatsApp professionnel, SANS le +, ni espaces (indicatif Bénin = 229).
-const WHATSAPP_NUMBER = '2290155873800'; // ⚠️ à remplacer par ton vrai numéro avant publication
+const WHATSAPP_NUMBER = '22900000000'; // ⚠️ à remplacer par ton vrai numéro avant publication
 const WHATSAPP_MESSAGE = T(
   "Bonjour, je m'intéresse au Portail Scolaire pour mon établissement. Pouvez-vous m'en dire plus ?",
   "Hello, I'm interested in the School Portal for my school. Could you tell me more?"
@@ -52,31 +51,12 @@ if (codeForm) {
   });
 }
 
-import { api, T, applyI18n, $ } from './common.js';
-
-applyI18n();
-document.addEventListener('langchange', () => applyI18n());
-
-$('#code-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const code = $('#code').value.trim().toLowerCase();
-  $('#msg').textContent = '';
-  try {
-    const s = await api('/public/school/' + encodeURIComponent(code), { noRedirect: true });
-    location.href = '/e/' + encodeURIComponent(s.code);
-  } catch (err) {
-    $('#msg').textContent = err.status === 404 ? T("Code introuvable. Vérifiez auprès de votre établissement.", 'Code not found. Please check with your school.') : err.message;
-  }
-});
-//3af1208908ff43e73e5c9011e91897984e8b8451
-
 api('/auth/me', { noRedirect: true }).then((r) => {
   if (r.user) {
     $('#continue').classList.remove('hidden');
     $('#continue-link').href = r.user.role === 'superadmin' ? '/platform.html' : '/app.html';
   }
 }).catch(() => {});
-
 
 /* ==========================================================================
    Menu mobile (burger)
@@ -168,5 +148,3 @@ $$('.lp-faq-item').forEach((item) => {
 /* Année du copyright, sans y penser chaque janvier */
 const yearEl = $('#year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
-//=======
- //3af1208908ff43e73e5c9011e91897984e8b8451
