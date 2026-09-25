@@ -4,7 +4,7 @@ import { api, T, h, setHtml, applyI18n, $, $$ } from './common.js';
    RÉGLAGES À PERSONNALISER — tout est ici, en un seul endroit.
    ========================================================================== */
 // Ton numéro WhatsApp professionnel, SANS le +, ni espaces (indicatif Bénin = 229).
-const WHATSAPP_NUMBER = '22900000000'; // ⚠️ à remplacer par ton vrai numéro avant publication
+const WHATSAPP_NUMBER = '2290155873800'; // ⚠️ à remplacer par ton vrai numéro avant publication
 const WHATSAPP_MESSAGE = T(
   "Bonjour, je m'intéresse au Portail Scolaire pour mon établissement. Pouvez-vous m'en dire plus ?",
   "Hello, I'm interested in the School Portal for my school. Could you tell me more?"
