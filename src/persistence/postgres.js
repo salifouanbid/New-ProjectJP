@@ -35,8 +35,15 @@ function postgresConfig(env = process.env) {
     throw new Error('DATABASE_URL doit utiliser le protocole postgres:// ou postgresql://');
   }
 
+  // node-postgres peut laisser `sslmode=require` de l'URI remplacer l'objet
+  // SSL fourni par le code. On le retire de l'URI : l'option ci-dessous reste
+  // la source unique de vérité pour le TLS du pooler Supabase.
+  parsed.searchParams.delete('sslmode');
+  parsed.searchParams.delete('sslrootcert');
+  const normalizedConnectionString = parsed.toString();
+
   return {
-    connectionString,
+    connectionString: normalizedConnectionString,
     // Supabase exige TLS et certains certificats de pooler ne sont pas présents
     // dans le bundle CA de la fonction serverless.
     ssl: { rejectUnauthorized: false },
