@@ -16,7 +16,8 @@ function positiveInt(value, fallback, name) {
 }
 
 function postgresConfig(env = process.env) {
-  const connectionString = String(env.DATABASE_URL || '').trim();
+  // Les interfaces de déploiement copient parfois la valeur avec des guillemets.
+  const connectionString = String(env.DATABASE_URL || '').trim().replace(/^("|')|("|')$/g, '');
   if (!connectionString) {
     throw new Error('DATABASE_URL est obligatoire pour utiliser PostgreSQL/Supabase');
   }
@@ -33,9 +34,9 @@ function postgresConfig(env = process.env) {
 
   return {
     connectionString,
-    // Supabase exige TLS. node-postgres ne transforme pas toujours
-    // sslmode=require en option SSL lorsqu'une URL est passée au Pool.
-    ssl: parsed.searchParams.get('sslmode') === 'require' ? { rejectUnauthorized: false } : undefined,
+    // Supabase exige TLS et certains certificats de pooler ne sont pas présents
+    // dans le bundle CA de la fonction serverless.
+    ssl: { rejectUnauthorized: false },
     // Supabase recommande une connexion applicative très petite avec son pooler
     // transactionnel. La valeur reste configurable pour un serveur persistant.
     max: positiveInt(env.DATABASE_POOL_MAX, 1, 'DATABASE_POOL_MAX'),
