@@ -33,6 +33,9 @@ function postgresConfig(env = process.env) {
 
   return {
     connectionString,
+    // Supabase exige TLS. node-postgres ne transforme pas toujours
+    // sslmode=require en option SSL lorsqu'une URL est passée au Pool.
+    ssl: parsed.searchParams.get('sslmode') === 'require' ? { rejectUnauthorized: false } : undefined,
     // Supabase recommande une connexion applicative très petite avec son pooler
     // transactionnel. La valeur reste configurable pour un serveur persistant.
     max: positiveInt(env.DATABASE_POOL_MAX, 1, 'DATABASE_POOL_MAX'),
