@@ -23,7 +23,19 @@ async function boot() {
   go(mod.nav.some((n) => n.key === wanted) ? wanted : mod.nav[0].key);
   flushQueue();
 }
-
+//Bandeau : abonnement
+function subscriptionBanner() {
+  const box = $('#sub-banner');
+  if (!box) return;
+  const s = user.school;
+  let msg = '';
+  if (s.expired) msg = T("⚠ L'abonnement de l'établissement a expiré : le site est en lecture seule (les notes restent consultables).", '⚠ The school subscription has expired: the site is read-only (grades remain viewable).');
+  else if (user.role === 'admin' && s.valid_until) {
+    const days = Math.ceil((new Date(s.valid_until + 'T23:59:59') - new Date()) / 86400000);
+    if (days <= 14) msg = T(`Votre abonnement se termine dans ${days} jour(s) (${s.valid_until}). Pensez à le renouveler.`, `Your subscription ends in ${days} day(s) (${s.valid_until}). Please renew.`);
+  }
+  setHtml(box, msg ? h`<div class="notice">${msg}</div>` : '');
+}
 function drawSidebar() {
   const sb = $('#sidebar');
   setHtml(sb, h`

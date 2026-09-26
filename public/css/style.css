@@ -269,7 +269,7 @@ td.num, th.num { text-align: center; }
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 3rem;
-  background-color: #ffffff;
+  background-color:var(--navy);
   border-bottom: 1px solid #e2e8f0;
   position: relative;
   z-index: 100;
@@ -399,7 +399,7 @@ td.num, th.num { text-align: center; }
   align-items: center !important;
   justify-content: space-between !important;
   padding: 0.9rem 2.5rem !important;
-  background-color: #ffffff !important;
+  background-color:var(--navy) !important;
   border-bottom: 1px solid #e2e8f0 !important;
   position: relative !important;
   z-index: 1000 !important;

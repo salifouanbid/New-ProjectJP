@@ -6,46 +6,33 @@
    reste du site : la page reste cohérente avec l'espace connecté.
    ========================================================================== */
 
-/* ---------- Bascule clair / sombre (réelle, contrairement à l'essai précédent) ---------- */
-:root[data-theme="light"] {
-  --bg: #f4f7fd; --bg2: #eef2fb; --text: #10182b; --muted: #5b6478;
-  --glass: rgba(11, 26, 58, 0.04); --glass-2: rgba(11, 26, 58, 0.07); --line: rgba(11, 26, 58, 0.12);
-  --navy: #0b1a3a;
-}
-:root[data-theme="light"] body { background-image: none; background-color: var(--bg); }
-:root[data-theme="light"] .navbar { background: rgba(255, 255, 255, 0.85); border-bottom-color: var(--line); }
-:root[data-theme="light"] .lp-card, :root[data-theme="light"] .card { box-shadow: 0 10px 30px rgba(11, 26, 58, .08); }
 
 /* ---------- Barre de navigation ---------- */
 .navbar {
   position: sticky; top: 0; z-index: 500;
-  display: flex; align-items: center; gap: 1.2rem;
-  padding: .8rem clamp(1rem, 4vw, 3rem);
-  background: rgba(7, 13, 31, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+  padding: .9rem clamp(1.2rem, 4vw, 3.5rem);
+  background: var(--navy);
   border-bottom: 1px solid var(--line);
 }
-.navbar .brand { text-decoration: none; }
-.nav-links { display: flex; align-items: center; gap: 1.6rem; flex: 1; margin-left: 1rem; }
-.nav-links a { color: var(--muted); font-weight: 600; font-size: .95rem; text-decoration: none; }
+.navbar .brand { flex: 0 0 auto; text-decoration: none; white-space: nowrap; }
+.nav-menu { display: flex; align-items: center; justify-content: space-between; flex: 1; gap: 1.5rem; min-width: 0; }
+.nav-links { display: flex; align-items: center; justify-content: center; gap: 2.2rem; flex: 1; }
+.nav-links a { color: var(--muted); font-weight: 600; font-size: .95rem; text-decoration: none; white-space: nowrap; }
 .nav-links a:hover { color: var(--text); }
-.nav-actions { display: flex; align-items: center; gap: .7rem; }
-.theme-btn {
-  background: var(--glass-2); border: 1px solid var(--line); color: var(--text);
-  width: 38px; height: 38px; border-radius: 10px; cursor: pointer; font-size: 1.05rem; line-height: 1;
-}
+.nav-actions { display: flex; align-items: center; gap: 1rem; flex: 0 0 auto; }
+.btn-login-link { color: var(--text); font-weight: 600; font-size: .95rem; text-decoration: none; white-space: nowrap; }
 .mobile-toggle { display: none; flex-direction: column; gap: 5px; background: none; border: 0; cursor: pointer; padding: 4px; }
 .mobile-toggle span { width: 22px; height: 2px; border-radius: 2px; background: var(--text); }
-
 @media (max-width: 880px) {
   .mobile-toggle { display: flex; }
   .nav-links, .btn-login-link { display: none; }
   .navbar .brand .name { white-space: nowrap; }
   .nav-menu.open .nav-links {
     display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;
-    width: 100%; padding: 1.2rem clamp(1rem,4vw,3rem) 1.5rem;
-    background: #0b1330; border-bottom: 1px solid var(--line);
+    position: absolute; left: 0; right: 0; top: 100%; padding: 1.2rem clamp(1rem,4vw,3rem) 1.5rem;
+    background: var(--navy); border-bottom: 1px solid var(--line);
   }
-  .navbar { flex-wrap: wrap; }
   .nav-menu.open .btn-login-link { display: inline-flex; }
 }
 

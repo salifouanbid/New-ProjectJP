@@ -75,15 +75,8 @@ if (menuBtn && navMenu) {
 /* ==========================================================================
    Thème clair / sombre — RÉEL : une seule feuille de style, des variables CSS.
    (Contrairement à un essai précédent, le bouton change vraiment l'apparence.)
-   ========================================================================== */
-const themeBtn = $('#theme-toggle');
-if (themeBtn) {
-  themeBtn.addEventListener('click', () => {
-    const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
-    document.documentElement.dataset.theme = next;
-    localStorage.setItem('theme', next);
-  });
-}
+   ========================================================================== 
+
 
 /* ==========================================================================
    Liens WhatsApp (nav, hero, CTA final, bouton flottant) — un seul endroit à modifier.
