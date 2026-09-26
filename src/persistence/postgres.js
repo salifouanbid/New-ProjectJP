@@ -16,8 +16,11 @@ function positiveInt(value, fallback, name) {
 }
 
 function postgresConfig(env = process.env) {
-  // Les interfaces de déploiement copient parfois la valeur avec des guillemets.
-  const connectionString = String(env.DATABASE_URL || '').trim().replace(/^("|')|("|')$/g, '');
+  // Les interfaces de déploiement copient parfois la valeur avec des guillemets
+  // ou avec le nom de variable (`DATABASE_URL=postgresql://...`).
+  let connectionString = String(env.DATABASE_URL || '').trim();
+  connectionString = connectionString.replace(/^DATABASE_URL\s*=\s*/i, '').trim();
+  connectionString = connectionString.replace(/^("|')|("|')$/g, '').trim();
   if (!connectionString) {
     throw new Error('DATABASE_URL est obligatoire pour utiliser PostgreSQL/Supabase');
   }
