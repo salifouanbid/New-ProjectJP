@@ -3,6 +3,7 @@ require('dotenv').config({ quiet: true });
 
 const root = path.join(__dirname, '..');
 const isProd = process.env.NODE_ENV === 'production';
+const isVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 
 const config = {
   root,
@@ -12,9 +13,13 @@ const config = {
   trustProxy: parseInt(process.env.TRUST_PROXY || (isProd ? '1' : '0'), 10),
   appUrl: (process.env.APP_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/$/, ''),
   jwtSecret: process.env.JWT_SECRET || '',
-  dbPath: path.resolve(root, process.env.DB_PATH || './data/portail.db'),
+  // Vercel monte /var/task en lecture seule et son disque n'est pas persistant.
+  // Ce repli évite le crash de démarrage en attendant la bascule PostgreSQL.
+  dbPath: process.env.DB_PATH || (isVercel ? '/tmp/portail.db' : path.resolve(root, './data/portail.db')),
   dbDriver: process.env.DB_DRIVER || 'auto',
-  uploadDir: path.resolve(root, process.env.UPLOAD_DIR || './uploads'),
+  databaseUrl: String(process.env.DATABASE_URL || '').trim(),
+  databaseProvider: process.env.DB_PROVIDER || 'sqlite',
+  uploadDir: process.env.UPLOAD_DIR || (isVercel ? '/tmp/portail-uploads' : path.resolve(root, './uploads')),
   cookieSecure:
     process.env.COOKIE_SECURE !== undefined ? process.env.COOKIE_SECURE === 'true' : isProd,
   superadmin: {
