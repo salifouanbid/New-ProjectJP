@@ -73,12 +73,6 @@ if (menuBtn && navMenu) {
 }
 
 /* ==========================================================================
-   Thème clair / sombre — RÉEL : une seule feuille de style, des variables CSS.
-   (Contrairement à un essai précédent, le bouton change vraiment l'apparence.)
-   ========================================================================== 
-
-
-/* ==========================================================================
    Liens WhatsApp (nav, hero, CTA final, bouton flottant) — un seul endroit à modifier.
    ========================================================================== */
 const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_MESSAGE)}`;
