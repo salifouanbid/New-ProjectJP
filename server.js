@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 
 const config = require('./src/config');
 const db = require('./src/db');
+const { getPostgresDatabase } = require('./src/persistence/runtime');
 const mw = require('./src/middleware/auth');
 const { ensureSuperadmin } = require('./src/bootstrap');
 
@@ -36,8 +37,18 @@ app.use(express.json({ limit: '200kb' }));
 app.use(cookieParser());
 
 /* ---------- Supervision (pour un service de surveillance type UptimeRobot) ---------- */
-app.get('/healthz', (req, res) => {
-  try { db.prepare('SELECT 1').get(); res.json({ ok: true }); } catch (e) { res.status(500).json({ ok: false }); }
+app.get('/healthz', async (req, res) => {
+  try {
+    if (config.databaseUrl) {
+      await getPostgresDatabase().healthcheck();
+      return res.json({ ok: true, database: 'postgres' });
+    }
+    db.prepare('SELECT 1').get();
+    return res.json({ ok: true, database: db.driver });
+  } catch (e) {
+    console.error('Healthcheck échoué :', e.message);
+    return res.status(500).json({ ok: false });
+  }
 });
 
 /* ---------- API ---------- */
