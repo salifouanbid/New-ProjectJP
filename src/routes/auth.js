@@ -23,7 +23,7 @@ const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardH
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-for-timing', 10);
 
 function findSchool(code) {
-  return db.prepare('SELECT * FROM schools WHERE code = ?').get(str(code, 40).toLowerCase());
+  return db.maybeOne('SELECT * FROM schools WHERE code = $1', [str(code, 40).toLowerCase()]);
 }
 
 router.post('/login', loginLimiter, ah(async (req, res) => {
@@ -34,10 +34,10 @@ router.post('/login', loginLimiter, ah(async (req, res) => {
   let user;
   let school = null;
   if (str(school_code)) {
-    school = findSchool(school_code);
-    if (school) user = db.prepare('SELECT * FROM users WHERE school_id = ? AND username = ?').get(school.id, uname);
+    school = await findSchool(school_code);
+    if (school) user = await db.maybeOne('SELECT * FROM users WHERE school_id = $1 AND username = $2', [school.id, uname]);
   } else {
-    user = db.prepare("SELECT * FROM users WHERE school_id IS NULL AND role = 'superadmin' AND username = ?").get(uname);
+    user = await db.maybeOne("SELECT * FROM users WHERE school_id IS NULL AND role = 'superadmin' AND username = $1", [uname]);
   }
   const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
   if (!user || !ok) return res.status(401).json({ error: 'Identifiants incorrects' });
@@ -60,7 +60,7 @@ router.post('/change-password', mw.authenticateAllowPasswordChange, ah(async (re
   const ok = await bcrypt.compare(String(current_password || ''), req.user.password_hash);
   if (!ok) return res.status(400).json({ error: 'Mot de passe actuel incorrect' });
   if (current_password === new_password) throw bad("Le nouveau mot de passe doit être différent de l'ancien");
-  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(await hashPassword(new_password), req.user.id);
+  await db.execute('UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2', [await hashPassword(new_password), req.user.id]);
   res.json({ ok: true });
 }));
 
@@ -68,17 +68,22 @@ router.post('/change-password', mw.authenticateAllowPasswordChange, ah(async (re
 router.post('/forgot', forgotLimiter, ah(async (req, res) => {
   const { school_code, identifier } = req.body || {};
   const ident = str(identifier, 120).toLowerCase();
-  const school = findSchool(school_code);
+  const school = await findSchool(school_code);
   if (school && school.active && ident) {
-    const user = db
-      .prepare('SELECT * FROM users WHERE school_id = ? AND active = 1 AND (username = ? OR email = ?)')
-      .get(school.id, ident, ident);
+    const user = await db.maybeOne(
+      'SELECT * FROM users WHERE school_id = $1 AND active = true AND (username = $2 OR email = $2)',
+      [school.id, ident]
+    );
     if (user && user.email) {
       const token = crypto.randomBytes(32).toString('hex');
       const hash = crypto.createHash('sha256').update(token).digest('hex');
-      db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(user.id);
-      db.prepare('INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?,?,?)')
-        .run(user.id, hash, new Date(Date.now() + 60 * 60 * 1000).toISOString());
+      await db.withTransaction(async (tx) => {
+        await tx.execute('DELETE FROM password_resets WHERE user_id = $1', [user.id]);
+        await tx.execute(
+          'INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+          [user.id, hash, new Date(Date.now() + 60 * 60 * 1000)]
+        );
+      });
       const link = `${config.appUrl}/reset.html?token=${token}`;
       await sendMail({
         to: user.email,
@@ -94,13 +99,19 @@ router.post('/reset', forgotLimiter, ah(async (req, res) => {
   const { token, password } = req.body || {};
   checkPassword(password);
   const hash = crypto.createHash('sha256').update(String(token || '')).digest('hex');
-  const row = db.prepare('SELECT * FROM password_resets WHERE token_hash = ? AND used_at IS NULL').get(hash);
-  if (!row || new Date(row.expires_at) < new Date()) throw bad('Lien invalide ou expiré');
   const pwd = await hashPassword(password);
-  db.transaction(() => {
-    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(pwd, row.user_id);
-    db.prepare("UPDATE password_resets SET used_at = datetime('now') WHERE id = ?").run(row.id);
-  })();
+  const changed = await db.withTransaction(async (tx) => {
+    // Le verrou empêche deux requêtes concurrentes d'utiliser le même lien.
+    const row = await tx.maybeOne(
+      'SELECT * FROM password_resets WHERE token_hash = $1 AND used_at IS NULL FOR UPDATE',
+      [hash]
+    );
+    if (!row || new Date(row.expires_at) < new Date()) return false;
+    await tx.execute('UPDATE users SET password_hash = $1, must_change_password = false WHERE id = $2', [pwd, row.user_id]);
+    await tx.execute('UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = $1', [row.id]);
+    return true;
+  });
+  if (!changed) throw bad('Lien invalide ou expiré');
   res.json({ ok: true });
 }));
 

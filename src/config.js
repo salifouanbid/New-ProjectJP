@@ -18,6 +18,7 @@ const config = {
   dbPath: process.env.DB_PATH || (isVercel ? '/tmp/portail.db' : path.resolve(root, './data/portail.db')),
   dbDriver: process.env.DB_DRIVER || 'auto',
   databaseUrl: String(process.env.DATABASE_URL || '').trim(),
+  databaseProvider: process.env.DB_PROVIDER || 'sqlite',
   uploadDir: process.env.UPLOAD_DIR || (isVercel ? '/tmp/portail-uploads' : path.resolve(root, './uploads')),
   cookieSecure:
     process.env.COOKIE_SECURE !== undefined ? process.env.COOKIE_SECURE === 'true' : isProd,

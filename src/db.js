@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
+const { createPostgresDatabase } = require('./persistence/postgres');
 
 function openDb(file) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -52,6 +53,65 @@ function openDb(file) {
       };
     },
   };
+}
+
+// Les modules déjà migrés utilisent la même API Promise avec les deux fournisseurs.
+// L'ancienne API prepare()/transaction(fn) reste exposée en mode SQLite uniquement,
+// afin que les périmètres non encore convertis continuent de fonctionner localement.
+function decorateSqlite(db) {
+  const sqliteQuery = (text, params = []) => {
+    const values = [];
+    const sql = text.replace(/\s+FOR\s+UPDATE\s*$/i, '').replace(/\$(\d+)/g, (_, index) => {
+      const value = params[Number(index) - 1];
+      values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value instanceof Date ? value.toISOString() : value);
+      return '?';
+    });
+    return { sql, values };
+  };
+
+  db.query = async (text, params = []) => {
+    const { sql, values } = sqliteQuery(text, params);
+    if (/^\s*(select|with|pragma)\b/i.test(sql) || /\breturning\b/i.test(sql)) {
+      const rows = db.prepare(sql).all(...values);
+      return { rows, rowCount: rows.length };
+    }
+    const result = db.prepare(sql).run(...values);
+    return { rows: [], rowCount: result.changes };
+  };
+  db.many = async (text, params = []) => (await db.query(text, params)).rows;
+  db.maybeOne = async (text, params = []) => {
+    const rows = await db.many(text, params);
+    if (rows.length > 1) throw new Error(`Requête attendue sur 0 ou 1 ligne, ${rows.length} reçues`);
+    return rows[0];
+  };
+  db.one = async (text, params = []) => {
+    const row = await db.maybeOne(text, params);
+    if (!row) throw new Error('Requête attendue sur exactement 1 ligne, aucune reçue');
+    return row;
+  };
+  db.execute = async (text, params = []) => {
+    const result = await db.query(text, params);
+    return { rowCount: result.rowCount, rows: result.rows };
+  };
+
+  let transactionQueue = Promise.resolve();
+  db.withTransaction = (work) => {
+    const run = transactionQueue.then(async () => {
+      db.exec('BEGIN');
+      try {
+        const value = await work(db);
+        db.exec('COMMIT');
+        return value;
+      } catch (error) {
+        try { db.exec('ROLLBACK'); } catch (_) { /* conserver l'erreur initiale */ }
+        throw error;
+      }
+    });
+    transactionQueue = run.catch(() => undefined);
+    return run;
+  };
+  db.healthcheck = async () => (await db.one('SELECT 1 AS ok')).ok === 1;
+  return db;
 }
 
 const SCHEMA = `
@@ -291,19 +351,27 @@ CREATE TABLE IF NOT EXISTS password_resets (
 );
 `;
 
-const db = openDb(config.dbPath);
-db.exec(SCHEMA);
+let db;
+if (config.databaseProvider === 'postgres') {
+  db = createPostgresDatabase({ env: process.env });
+  // Nom commun employé par les services convertis. Une transaction imbriquée reste
+  // attachée au même client grâce à PostgresTransaction.transaction().
+  db.withTransaction = (work) => db.transaction(work);
+} else {
+  db = decorateSqlite(openDb(config.dbPath));
+  db.exec(SCHEMA);
 
-// Migration : ajoute les colonnes « vitrine » aux bases créées avec une ancienne version.
-const schoolCols = db.prepare('PRAGMA table_info(schools)').all().map((c) => c.name);
-[['description', ''], ['address', ''], ['phone', ''], ['contact_email', ''], ['hours', '']].forEach(([name]) => {
-  if (!schoolCols.includes(name)) db.exec(`ALTER TABLE schools ADD COLUMN ${name} TEXT NOT NULL DEFAULT ''`);
-});
-const annCols = db.prepare('PRAGMA table_info(announcements)').all().map((c) => c.name);
-if (!annCols.includes('image_name')) db.exec('ALTER TABLE announcements ADD COLUMN image_name TEXT');
-// Migration : l'ancienne image unique d'une publication devient la 1re image de sa galerie.
-db.exec(`INSERT INTO announcement_images (school_id, announcement_id, file_name, position)
-         SELECT school_id, id, image_name, 0 FROM announcements WHERE image_name IS NOT NULL;
-         UPDATE announcements SET image_name = NULL WHERE image_name IS NOT NULL;`);
+  // Migration : ajoute les colonnes « vitrine » aux bases créées avec une ancienne version.
+  const schoolCols = db.prepare('PRAGMA table_info(schools)').all().map((c) => c.name);
+  [['description', ''], ['address', ''], ['phone', ''], ['contact_email', ''], ['hours', '']].forEach(([name]) => {
+    if (!schoolCols.includes(name)) db.exec(`ALTER TABLE schools ADD COLUMN ${name} TEXT NOT NULL DEFAULT ''`);
+  });
+  const annCols = db.prepare('PRAGMA table_info(announcements)').all().map((c) => c.name);
+  if (!annCols.includes('image_name')) db.exec('ALTER TABLE announcements ADD COLUMN image_name TEXT');
+  // Migration : l'ancienne image unique d'une publication devient la 1re image de sa galerie.
+  db.exec(`INSERT INTO announcement_images (school_id, announcement_id, file_name, position)
+           SELECT school_id, id, image_name, 0 FROM announcements WHERE image_name IS NOT NULL;
+           UPDATE announcements SET image_name = NULL WHERE image_name IS NOT NULL;`);
+}
 
 module.exports = db;
