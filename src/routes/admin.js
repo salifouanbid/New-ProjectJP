@@ -19,6 +19,14 @@ function must(table, id, schoolId, label) {
   return row;
 }
 
+async function mustAsync(table, id, schoolId, label) {
+  const n = intOrNull(id);
+  if (n === null) throw bad(`${label} introuvable`);
+  const row = await db.maybeOne(`SELECT * FROM ${table} WHERE id = $1 AND school_id = $2`, [n, schoolId]);
+  if (!row) throw bad(`${label} introuvable`);
+  return row;
+}
+
 /* ---------- Tableau de bord ---------- */
 router.get('/dashboard', ah(async (req, res) => {
   const s = S(req);
@@ -39,32 +47,32 @@ router.get('/dashboard', ah(async (req, res) => {
 
 /* ---------- Référentiel : niveaux, séries, matières ---------- */
 function simpleCrud(route, table, order) {
-  router.get(`/${route}`, (req, res) => {
-    res.json({ items: db.prepare(`SELECT * FROM ${table} WHERE school_id = ? ORDER BY ${order}`).all(S(req)) });
-  });
-  router.post(`/${route}`, (req, res) => {
+  router.get(`/${route}`, ah(async (req, res) => {
+    res.json({ items: await db.many(`SELECT * FROM ${table} WHERE school_id = $1 ORDER BY ${order}`, [S(req)]) });
+  }));
+  router.post(`/${route}`, ah(async (req, res) => {
     const name = str(req.body && req.body.name, 80);
     if (!name) throw bad('Nom obligatoire');
     if (table === 'levels') {
-      const pos = db.prepare('SELECT COALESCE(MAX(position), 0) + 1 p FROM levels WHERE school_id = ?').get(S(req)).p;
-      const r = db.prepare('INSERT INTO levels (school_id, name, position) VALUES (?,?,?)').run(S(req), name, pos);
-      return res.status(201).json({ id: Number(r.lastInsertRowid) });
+      const pos = await db.maybeOne('SELECT COALESCE(MAX(position), 0) + 1 AS p FROM levels WHERE school_id = $1', [S(req)]);
+      const r = await db.maybeOne('INSERT INTO levels (school_id, name, position) VALUES ($1,$2,$3) RETURNING id', [S(req), name, Number(pos.p)]);
+      return res.status(201).json({ id: Number(r.id) });
     }
-    const r = db.prepare(`INSERT INTO ${table} (school_id, name) VALUES (?,?)`).run(S(req), name);
-    res.status(201).json({ id: Number(r.lastInsertRowid) });
-  });
-  router.put(`/${route}/:id`, (req, res) => {
-    const row = must(table, req.params.id, S(req), 'Élément');
+    const r = await db.maybeOne(`INSERT INTO ${table} (school_id, name) VALUES ($1,$2) RETURNING id`, [S(req), name]);
+    res.status(201).json({ id: Number(r.id) });
+  }));
+  router.put(`/${route}/:id`, ah(async (req, res) => {
+    const row = await mustAsync(table, req.params.id, S(req), 'Élément');
     const name = str(req.body && req.body.name, 80);
     if (!name) throw bad('Nom obligatoire');
-    db.prepare(`UPDATE ${table} SET name = ? WHERE id = ?`).run(name, row.id);
+    await db.execute(`UPDATE ${table} SET name = $1 WHERE id = $2`, [name, row.id]);
     res.json({ ok: true });
-  });
-  router.delete(`/${route}/:id`, (req, res) => {
-    const row = must(table, req.params.id, S(req), 'Élément');
-    db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(row.id); // refusé (409) si encore utilisé
+  }));
+  router.delete(`/${route}/:id`, ah(async (req, res) => {
+    const row = await mustAsync(table, req.params.id, S(req), 'Élément');
+    await db.execute(`DELETE FROM ${table} WHERE id = $1`, [row.id]); // refusé (409) si encore utilisé
     res.json({ ok: true });
-  });
+  }));
 }
 simpleCrud('levels', 'levels', 'position, id');
 simpleCrud('series', 'series', 'name');
