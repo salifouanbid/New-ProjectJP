@@ -20,19 +20,22 @@ function must(table, id, schoolId, label) {
 }
 
 /* ---------- Tableau de bord ---------- */
-router.get('/dashboard', (req, res) => {
+router.get('/dashboard', ah(async (req, res) => {
   const s = S(req);
-  const count = (role) => db.prepare('SELECT COUNT(*) c FROM users WHERE school_id = ? AND role = ? AND active = 1').get(s, role).c;
+  const count = (role) => db.maybeOne('SELECT COUNT(*) AS c FROM users WHERE school_id = $1 AND role = $2 AND active = true', [s, role]);
+  const [students, teachers, parents, classes, pending, absences, openTerm] = await Promise.all([
+    count('student'), count('teacher'), count('parent'),
+    db.maybeOne('SELECT COUNT(*) AS c FROM classes WHERE school_id = $1', [s]),
+    db.maybeOne("SELECT COUNT(*) AS c FROM justifications WHERE school_id = $1 AND status = 'pending'", [s]),
+    db.maybeOne("SELECT COUNT(*) AS c FROM attendance WHERE school_id = $1 AND date = CURRENT_DATE AND status = 'absent'", [s]),
+    db.maybeOne("SELECT id, name FROM terms WHERE school_id = $1 AND status = 'open'", [s]),
+  ]);
   res.json({
-    students: count('student'),
-    teachers: count('teacher'),
-    parents: count('parent'),
-    classes: db.prepare('SELECT COUNT(*) c FROM classes WHERE school_id = ?').get(s).c,
-    pending_justifications: db.prepare("SELECT COUNT(*) c FROM justifications WHERE school_id = ? AND status = 'pending'").get(s).c,
-    absences_today: db.prepare("SELECT COUNT(*) c FROM attendance WHERE school_id = ? AND date = date('now') AND status = 'absent'").get(s).c,
-    open_term: db.prepare("SELECT id, name FROM terms WHERE school_id = ? AND status = 'open'").get(s) || null,
+    students: Number(students?.c || 0), teachers: Number(teachers?.c || 0), parents: Number(parents?.c || 0),
+    classes: Number(classes?.c || 0), pending_justifications: Number(pending?.c || 0),
+    absences_today: Number(absences?.c || 0), open_term: openTerm || null,
   });
-});
+}));
 
 /* ---------- Référentiel : niveaux, séries, matières ---------- */
 function simpleCrud(route, table, order) {
