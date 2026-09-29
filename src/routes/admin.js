@@ -191,37 +191,26 @@ router.post('/terms/:id/close', ah(async (req, res) => {
 /* ---------- Utilisateurs ---------- */
 const ROLES = ['admin', 'teacher', 'student', 'parent'];
 
-router.get('/users', (req, res) => {
-  const role = str(req.query.role, 10);
-  if (!ROLES.includes(role)) throw bad('Rôle invalide');
+router.get('/users', ah(async (req, res) => {
+  const role = str(req.query.role, 10); if (!ROLES.includes(role)) throw bad('Rôle invalide');
   const q = `%${str(req.query.q, 60).toLowerCase()}%`;
-  const params = [S(req), role, q, q, q];
-  let where = "u.school_id = ? AND u.role = ? AND (lower(u.first_name || ' ' || u.last_name) LIKE ? OR u.username LIKE ? OR lower(IFNULL(u.email,'')) LIKE ?)";
-  let join = '';
-  let cols = '';
-  if (role === 'student') {
-    join = 'JOIN students st ON st.user_id = u.id JOIN classes c ON c.id = st.class_id';
-    cols = ', st.id AS student_id, st.class_id, st.matricule, c.name AS class_name';
-    const cid = intOrNull(req.query.class_id);
-    if (cid !== null) { where += ' AND st.class_id = ?'; params.push(cid); }
+  if (isPostgres()) {
+    const params = [S(req), role, q]; let extra = '';
+    if (role === 'student' && intOrNull(req.query.class_id) !== null) { params.push(intOrNull(req.query.class_id)); extra = ` AND st.class_id = $${params.length}`; }
+    const join = role === 'student' ? 'JOIN students st ON st.user_id = u.id JOIN classes c ON c.id = st.class_id' : '';
+    const cols = role === 'student' ? ', st.id AS student_id, st.class_id, st.matricule, c.name AS class_name' : '';
+    const users = await db.many(`SELECT u.id, u.username, u.email, u.phone, u.first_name, u.last_name, u.active, u.must_change_password${cols} FROM users u ${join} WHERE u.school_id = $1 AND u.role = $2 AND (lower(u.first_name || ' ' || u.last_name) LIKE $3 OR u.username LIKE $3 OR lower(coalesce(u.email,'')) LIKE $3)${extra} ORDER BY u.last_name, u.first_name LIMIT 500`, params);
+    if (role === 'parent') { const kids = await db.many('SELECT ps.parent_id, st.id AS student_id, u.first_name, u.last_name FROM parent_students ps JOIN students st ON st.id = ps.student_id JOIN users u ON u.id = st.user_id WHERE st.school_id = $1', [S(req)]); users.forEach((p) => { p.children = kids.filter((k) => Number(k.parent_id) === Number(p.id)).map((k) => ({ id: k.student_id, name: `${k.first_name} ${k.last_name}` })); }); }
+    if (role === 'teacher') { const counts = await db.many('SELECT teacher_id, COUNT(*) AS n FROM teaching_assignments WHERE school_id = $1 GROUP BY teacher_id', [S(req)]); users.forEach((t) => { t.assignments = Number((counts.find((c) => Number(c.teacher_id) === Number(t.id)) || { n: 0 }).n); }); }
+    return res.json({ items: users });
   }
-  const users = db
-    .prepare(`SELECT u.id, u.username, u.email, u.phone, u.first_name, u.last_name, u.active, u.must_change_password${cols}
-              FROM users u ${join} WHERE ${where} ORDER BY u.last_name, u.first_name LIMIT 500`)
-    .all(...params);
-  if (role === 'parent') {
-    const kids = db.prepare(
-      `SELECT ps.parent_id, st.id AS student_id, u.first_name, u.last_name
-       FROM parent_students ps JOIN students st ON st.id = ps.student_id JOIN users u ON u.id = st.user_id
-       WHERE st.school_id = ?`).all(S(req));
-    users.forEach((p) => { p.children = kids.filter((k) => k.parent_id === p.id).map((k) => ({ id: k.student_id, name: `${k.first_name} ${k.last_name}` })); });
-  }
-  if (role === 'teacher') {
-    const counts = db.prepare('SELECT teacher_id, COUNT(*) n FROM teaching_assignments WHERE school_id = ? GROUP BY teacher_id').all(S(req));
-    users.forEach((t) => { t.assignments = (counts.find((c) => c.teacher_id === t.id) || { n: 0 }).n; });
-  }
+  const params = [S(req), role, q, q, q]; let where = "u.school_id = ? AND u.role = ? AND (lower(u.first_name || ' ' || u.last_name) LIKE ? OR u.username LIKE ? OR lower(IFNULL(u.email,'')) LIKE ?)"; let join = ''; let cols = '';
+  if (role === 'student') { join = 'JOIN students st ON st.user_id = u.id JOIN classes c ON c.id = st.class_id'; cols = ', st.id AS student_id, st.class_id, st.matricule, c.name AS class_name'; const cid = intOrNull(req.query.class_id); if (cid !== null) { where += ' AND st.class_id = ?'; params.push(cid); } }
+  const users = db.prepare(`SELECT u.id, u.username, u.email, u.phone, u.first_name, u.last_name, u.active, u.must_change_password${cols} FROM users u ${join} WHERE ${where} ORDER BY u.last_name, u.first_name LIMIT 500`).all(...params);
+  if (role === 'parent') { const kids = db.prepare(`SELECT ps.parent_id, st.id AS student_id, u.first_name, u.last_name FROM parent_students ps JOIN students st ON st.id = ps.student_id JOIN users u ON u.id = st.user_id WHERE st.school_id = ?`).all(S(req)); users.forEach((p) => { p.children = kids.filter((k) => k.parent_id === p.id).map((k) => ({ id: k.student_id, name: `${k.first_name} ${k.last_name}` })); }); }
+  if (role === 'teacher') { const counts = db.prepare('SELECT teacher_id, COUNT(*) n FROM teaching_assignments WHERE school_id = ? GROUP BY teacher_id').all(S(req)); users.forEach((t) => { t.assignments = (counts.find((c) => c.teacher_id === t.id) || { n: 0 }).n; }); }
   res.json({ items: users });
-});
+}));
 
 router.post('/users', ah(async (req, res) => {
   const b = req.body || {};
