@@ -213,28 +213,21 @@ router.get('/users', ah(async (req, res) => {
 }));
 
 router.post('/users', ah(async (req, res) => {
-  const b = req.body || {};
-  if (!ROLES.includes(b.role)) throw bad('Rôle invalide');
-  const username = normUsername(b.username);
-  const first = str(b.first_name, 60);
-  const last = str(b.last_name, 60);
-  if (!first || !last) throw bad('Nom et prénom obligatoires');
-  const email = normEmail(b.email);
-  let cls = null;
-  if (b.role === 'student') cls = must('classes', b.class_id, S(req), 'Classe');
-  let password = b.password;
-  let generated = null;
-  if (password) checkPassword(password); else { password = tempPassword(); generated = password; }
+  const b = req.body || {}; if (!ROLES.includes(b.role)) throw bad('Rôle invalide');
+  const username = normUsername(b.username); const first = str(b.first_name, 60); const last = str(b.last_name, 60); if (!first || !last) throw bad('Nom et prénom obligatoires');
+  const email = normEmail(b.email); let cls = null;
+  if (b.role === 'student') cls = isPostgres() ? await mustAsync('classes', b.class_id, S(req), 'Classe') : must('classes', b.class_id, S(req), 'Classe');
+  let password = b.password; let generated = null; if (password) checkPassword(password); else { password = tempPassword(); generated = password; }
   const hash = await hashPassword(password);
-  const id = db.transaction(() => {
-    const r = db
-      .prepare(`INSERT INTO users (school_id, username, email, phone, password_hash, role, first_name, last_name, must_change_password)
-                VALUES (?,?,?,?,?,?,?,?,?)`)
-      .run(S(req), username, email, str(b.phone, 30) || null, hash, b.role, first, last, generated ? 1 : 0);
-    const uid = Number(r.lastInsertRowid);
-    if (cls) db.prepare('INSERT INTO students (school_id, user_id, class_id, matricule) VALUES (?,?,?,?)').run(S(req), uid, cls.id, str(b.matricule, 30));
-    return uid;
-  })();
+  if (isPostgres()) {
+    const id = await db.withTransaction(async (tx) => {
+      const r = await tx.maybeOne(`INSERT INTO users (school_id, username, email, phone, password_hash, role, first_name, last_name, must_change_password) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`, [S(req), username, email, str(b.phone, 30) || null, hash, b.role, first, last, !!generated]);
+      if (cls) await tx.execute('INSERT INTO students (school_id, user_id, class_id, matricule) VALUES ($1,$2,$3,$4)', [S(req), r.id, cls.id, str(b.matricule, 30)]);
+      return Number(r.id);
+    });
+    return res.status(201).json({ id, username, temp_password: generated });
+  }
+  const id = db.transaction(() => { const r = db.prepare(`INSERT INTO users (school_id, username, email, phone, password_hash, role, first_name, last_name, must_change_password) VALUES (?,?,?,?,?,?,?,?,?)`).run(S(req), username, email, str(b.phone, 30) || null, hash, b.role, first, last, generated ? 1 : 0); const uid = Number(r.lastInsertRowid); if (cls) db.prepare('INSERT INTO students (school_id, user_id, class_id, matricule) VALUES (?,?,?,?)').run(S(req), uid, cls.id, str(b.matricule, 30)); return uid; })();
   res.status(201).json({ id, username, temp_password: generated });
 }));
 
