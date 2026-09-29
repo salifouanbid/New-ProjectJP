@@ -170,35 +170,23 @@ router.put('/coefficients', (req, res) => {
 });
 
 /* ---------- Trimestres ---------- */
-router.get('/terms', (req, res) => {
+router.get('/terms', ah(async (req, res) => {
+  if (isPostgres()) return res.json({ items: await db.many('SELECT * FROM terms WHERE school_id = $1 ORDER BY position', [S(req)]) });
   res.json({ items: db.prepare('SELECT * FROM terms WHERE school_id = ? ORDER BY position').all(S(req)) });
-});
-router.post('/terms', (req, res) => {
-  const name = str(req.body && req.body.name, 40);
-  if (!name) throw bad('Nom obligatoire');
-  const pos = db.prepare('SELECT COALESCE(MAX(position), 0) + 1 p FROM terms WHERE school_id = ?').get(S(req)).p;
-  const r = db.prepare("INSERT INTO terms (school_id, name, position, status) VALUES (?,?,?, 'upcoming')").run(S(req), name, pos);
-  res.status(201).json({ id: Number(r.lastInsertRowid) });
-});
-router.post('/terms/:id/open', (req, res) => {
-  const t = must('terms', req.params.id, S(req), 'Période');
-  if (t.status !== 'upcoming') throw bad("Seule une période à venir peut être ouverte");
-  if (db.prepare("SELECT 1 FROM terms WHERE school_id = ? AND status = 'open'").get(S(req))) throw bad('Une période est déjà ouverte : clôturez-la d\'abord');
-  db.prepare("UPDATE terms SET status = 'open' WHERE id = ?").run(t.id);
-  res.json({ ok: true });
-});
-// Clôture : les notes sont gelées et la période suivante s'ouvre automatiquement.
-router.post('/terms/:id/close', (req, res) => {
-  const t = must('terms', req.params.id, S(req), 'Période');
-  if (t.status !== 'open') throw bad('Seule la période en cours peut être clôturée');
-  let next = null;
-  db.transaction(() => {
-    db.prepare("UPDATE terms SET status = 'closed', closed_at = datetime('now') WHERE id = ?").run(t.id);
-    next = db.prepare("SELECT * FROM terms WHERE school_id = ? AND position > ? AND status = 'upcoming' ORDER BY position LIMIT 1").get(S(req), t.position);
-    if (next) db.prepare("UPDATE terms SET status = 'open' WHERE id = ?").run(next.id);
-  })();
-  res.json({ ok: true, next: next ? next.name : null });
-});
+}));
+router.post('/terms', ah(async (req, res) => {
+  const name = str(req.body && req.body.name, 40); if (!name) throw bad('Nom obligatoire');
+  if (isPostgres()) { const pos = await db.maybeOne('SELECT COALESCE(MAX(position), 0) + 1 AS p FROM terms WHERE school_id = $1', [S(req)]); const r = await db.maybeOne("INSERT INTO terms (school_id, name, position, status) VALUES ($1,$2,$3,'upcoming') RETURNING id", [S(req), name, Number(pos.p)]); return res.status(201).json({ id: Number(r.id) }); }
+  const pos = db.prepare('SELECT COALESCE(MAX(position), 0) + 1 p FROM terms WHERE school_id = ?').get(S(req)).p; const r = db.prepare("INSERT INTO terms (school_id, name, position, status) VALUES (?,?,?, 'upcoming')").run(S(req), name, pos); res.status(201).json({ id: Number(r.lastInsertRowid) });
+}));
+router.post('/terms/:id/open', ah(async (req, res) => {
+  if (isPostgres()) { const t = await mustAsync('terms', req.params.id, S(req), 'Période'); if (t.status !== 'upcoming') throw bad("Seule une période à venir peut être ouverte"); if (await db.maybeOne("SELECT 1 FROM terms WHERE school_id = $1 AND status = 'open'", [S(req)])) throw bad('Une période est déjà ouverte : clôturez-la d\'abord'); await db.execute("UPDATE terms SET status = 'open' WHERE id = $1", [t.id]); return res.json({ ok: true }); }
+  const t = must('terms', req.params.id, S(req), 'Période'); if (t.status !== 'upcoming') throw bad("Seule une période à venir peut être ouverte"); if (db.prepare("SELECT 1 FROM terms WHERE school_id = ? AND status = 'open'").get(S(req))) throw bad('Une période est déjà ouverte : clôturez-la d\'abord'); db.prepare("UPDATE terms SET status = 'open' WHERE id = ?").run(t.id); res.json({ ok: true });
+}));
+router.post('/terms/:id/close', ah(async (req, res) => {
+  if (isPostgres()) { const t = await mustAsync('terms', req.params.id, S(req), 'Période'); if (t.status !== 'open') throw bad('Seule la période en cours peut être clôturée'); let next = null; await db.withTransaction(async (tx) => { await tx.execute("UPDATE terms SET status = 'closed', closed_at = NOW() WHERE id = $1", [t.id]); next = await tx.maybeOne("SELECT * FROM terms WHERE school_id = $1 AND position > $2 AND status = 'upcoming' ORDER BY position LIMIT 1", [S(req), t.position]); if (next) await tx.execute("UPDATE terms SET status = 'open' WHERE id = $1", [next.id]); }); return res.json({ ok: true, next: next ? next.name : null }); }
+  const t = must('terms', req.params.id, S(req), 'Période'); if (t.status !== 'open') throw bad('Seule la période en cours peut être clôturée'); let next = null; db.transaction(() => { db.prepare("UPDATE terms SET status = 'closed', closed_at = datetime('now') WHERE id = ?").run(t.id); next = db.prepare("SELECT * FROM terms WHERE school_id = ? AND position > ? AND status = 'upcoming' ORDER BY position LIMIT 1").get(S(req), t.position); if (next) db.prepare("UPDATE terms SET status = 'open' WHERE id = ?").run(next.id); })(); res.json({ ok: true, next: next ? next.name : null });
+}));
 
 /* ---------- Utilisateurs ---------- */
 const ROLES = ['admin', 'teacher', 'student', 'parent'];
