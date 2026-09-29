@@ -1,12 +1,14 @@
 // Espace ADMINISTRATEUR d'un établissement. Toute requête est filtrée par req.user.school_id.
 const express = require('express');
 const db = require('../db');
+const config = require('../config');
 const { makeUploader, verifyFile, removeFile } = require('../services/upload');
 const { attachImages, MAX_IMAGES } = require('./news');
 const { ah, bad, notFound, str, intOrNull, normUsername, normEmail, checkPassword, tempPassword, hashPassword, isDate } = require('../services/util');
 
 const router = express.Router();
 const S = (req) => req.user.school_id;
+const isPostgres = () => config.databaseProvider === 'postgres';
 
 function owned(table, id, schoolId) {
   const n = intOrNull(id);
@@ -91,17 +93,20 @@ router.post('/structure/starter', (req, res) => {
 });
 
 /* ---------- Classes ---------- */
-router.get('/classes', (req, res) => {
-  const items = db
-    .prepare(
-      `SELECT c.id, c.name, c.level_id, c.series_id, l.name AS level_name, se.name AS series_name,
-        (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS students
-       FROM classes c JOIN levels l ON l.id = c.level_id LEFT JOIN series se ON se.id = c.series_id
-       WHERE c.school_id = ? ORDER BY l.position, c.name`
-    )
-    .all(S(req));
+router.get('/classes', ah(async (req, res) => {
+  if (isPostgres()) {
+    const items = await db.many(`SELECT c.id, c.name, c.level_id, c.series_id, l.name AS level_name, se.name AS series_name,
+      (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS students
+      FROM classes c JOIN levels l ON l.id = c.level_id LEFT JOIN series se ON se.id = c.series_id
+      WHERE c.school_id = $1 ORDER BY l.position, c.name`, [S(req)]);
+    return res.json({ items });
+  }
+  const items = db.prepare(`SELECT c.id, c.name, c.level_id, c.series_id, l.name AS level_name, se.name AS series_name,
+    (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS students
+    FROM classes c JOIN levels l ON l.id = c.level_id LEFT JOIN series se ON se.id = c.series_id
+    WHERE c.school_id = ? ORDER BY l.position, c.name`).all(S(req));
   res.json({ items });
-});
+}));
 function classBody(req) {
   const name = str(req.body && req.body.name, 60);
   if (!name) throw bad('Nom obligatoire');
@@ -110,22 +115,26 @@ function classBody(req) {
   if (req.body.series_id !== null && req.body.series_id !== undefined && req.body.series_id !== '') seriesId = must('series', req.body.series_id, S(req), 'Série').id;
   return { name, level_id: level.id, series_id: seriesId };
 }
-router.post('/classes', (req, res) => {
-  const c = classBody(req);
-  const r = db.prepare('INSERT INTO classes (school_id, level_id, series_id, name) VALUES (?,?,?,?)').run(S(req), c.level_id, c.series_id, c.name);
-  res.status(201).json({ id: Number(r.lastInsertRowid) });
-});
-router.put('/classes/:id', (req, res) => {
-  const row = must('classes', req.params.id, S(req), 'Classe');
-  const c = classBody(req);
-  db.prepare('UPDATE classes SET name = ?, level_id = ?, series_id = ? WHERE id = ?').run(c.name, c.level_id, c.series_id, row.id);
-  res.json({ ok: true });
-});
-router.delete('/classes/:id', (req, res) => {
-  const row = must('classes', req.params.id, S(req), 'Classe');
-  db.prepare('DELETE FROM classes WHERE id = ?').run(row.id);
-  res.json({ ok: true });
-});
+async function classBodyAsync(req) {
+  const name = str(req.body && req.body.name, 60);
+  if (!name) throw bad('Nom obligatoire');
+  const level = await mustAsync('levels', req.body.level_id, S(req), 'Niveau');
+  let seriesId = null;
+  if (req.body.series_id !== null && req.body.series_id !== undefined && req.body.series_id !== '') seriesId = (await mustAsync('series', req.body.series_id, S(req), 'Série')).id;
+  return { name, level_id: level.id, series_id: seriesId };
+}
+router.post('/classes', ah(async (req, res) => {
+  if (isPostgres()) { const c = await classBodyAsync(req); const r = await db.maybeOne('INSERT INTO classes (school_id, level_id, series_id, name) VALUES ($1,$2,$3,$4) RETURNING id', [S(req), c.level_id, c.series_id, c.name]); return res.status(201).json({ id: Number(r.id) }); }
+  const c = classBody(req); const r = db.prepare('INSERT INTO classes (school_id, level_id, series_id, name) VALUES (?,?,?,?)').run(S(req), c.level_id, c.series_id, c.name); res.status(201).json({ id: Number(r.lastInsertRowid) });
+}));
+router.put('/classes/:id', ah(async (req, res) => {
+  if (isPostgres()) { const row = await mustAsync('classes', req.params.id, S(req), 'Classe'); const c = await classBodyAsync(req); await db.execute('UPDATE classes SET name = $1, level_id = $2, series_id = $3 WHERE id = $4', [c.name, c.level_id, c.series_id, row.id]); return res.json({ ok: true }); }
+  const row = must('classes', req.params.id, S(req), 'Classe'); const c = classBody(req); db.prepare('UPDATE classes SET name = ?, level_id = ?, series_id = ? WHERE id = ?').run(c.name, c.level_id, c.series_id, row.id); res.json({ ok: true });
+}));
+router.delete('/classes/:id', ah(async (req, res) => {
+  if (isPostgres()) { const row = await mustAsync('classes', req.params.id, S(req), 'Classe'); await db.execute('DELETE FROM classes WHERE id = $1', [row.id]); return res.json({ ok: true }); }
+  const row = must('classes', req.params.id, S(req), 'Classe'); db.prepare('DELETE FROM classes WHERE id = ?').run(row.id); res.json({ ok: true });
+}));
 
 /* ---------- Coefficients (par niveau et, si besoin, par série) ---------- */
 router.get('/coefficients', (req, res) => {
