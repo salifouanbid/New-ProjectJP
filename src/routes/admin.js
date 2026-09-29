@@ -237,6 +237,12 @@ function targetUser(req) {
   return u;
 }
 
+async function targetUserAsync(req) {
+  const u = await db.maybeOne('SELECT * FROM users WHERE id = $1 AND school_id = $2', [intOrNull(req.params.id), S(req)]);
+  if (!u || u.role === 'superadmin') throw notFound('Utilisateur introuvable');
+  return u;
+}
+
 router.put('/users/:id', (req, res) => {
   const u = targetUser(req);
   const b = req.body || {};
@@ -268,7 +274,17 @@ router.post('/users/:id/reset-password', ah(async (req, res) => {
   res.json({ username: u.username, temp_password: pwd });
 }));
 
-router.delete('/users/:id', (req, res) => {
+router.delete('/users/:id', ah(async (req, res) => {
+  if (isPostgres()) {
+    const u = await targetUserAsync(req);
+    if (u.id === req.user.id) throw bad('Vous ne pouvez pas supprimer votre propre compte');
+    if (u.role === 'admin') {
+      const count = await db.maybeOne("SELECT COUNT(*) AS c FROM users WHERE school_id = $1 AND role = 'admin'", [S(req)]);
+      if (Number(count.c) < 2) throw bad("Impossible de supprimer le seul administrateur de l'établissement");
+    }
+    await db.execute('DELETE FROM users WHERE id = $1', [u.id]);
+    return res.json({ ok: true });
+  }
   const u = targetUser(req);
   if (u.id === req.user.id) throw bad('Vous ne pouvez pas supprimer votre propre compte');
   if (u.role === 'admin' && db.prepare("SELECT COUNT(*) c FROM users WHERE school_id = ? AND role = 'admin'").get(S(req)).c < 2) {
@@ -276,7 +292,7 @@ router.delete('/users/:id', (req, res) => {
   }
   db.prepare('DELETE FROM users WHERE id = ?').run(u.id); // refusé (409) si l'élève a des notes/présences
   res.json({ ok: true });
-});
+}));
 
 router.put('/parents/:id/children', (req, res) => {
   const p = targetUser(req);
