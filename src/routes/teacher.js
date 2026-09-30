@@ -5,6 +5,7 @@ const { bad, notFound, str, intOrNull, isDate, ah } = require('../services/util'
 const config = require('../config');
 const isPostgres = () => config.databaseProvider === 'postgres';
 const { makeUploader, verifyFile, removeFile } = require('../services/upload');
+const { persistFile, removeStoredFile, storageEnabled } = require('../services/storage');
 const { INTERRO_MAX, DEVOIR_MAX } = require('../services/grades');
 
 const router = express.Router();
@@ -194,6 +195,18 @@ router.delete('/lessons/:id', (req, res) => {
 
 /* ---------- Archives (anciennes épreuves PDF) ---------- */
 const uploadPdf = makeUploader(['.pdf'], 10);
+if (isPostgres()) {
+  router.get('/archives', ah(async(req,res)=>{const {classId,subjectId}=await assertAssignedAsync(req,req.query.class_id,req.query.subject_id);res.json({items:await db.many('SELECT id,title,original_name,size,created_at FROM archives WHERE school_id=$1 AND class_id=$2 AND subject_id=$3 ORDER BY created_at DESC',[S(req),classId,subjectId])});}));
+  router.post('/archives', uploadPdf.single('file'), ah(async(req,res)=>{const file=req.file;try{if(!file)throw bad('Fichier PDF obligatoire');verifyFile(file);const {classId,subjectId}=await assertAssignedAsync(req,req.body.class_id,req.body.subject_id);const title=str(req.body.title,160)||file.originalname.replace(/\.pdf$/i,'');if(storageEnabled())await persistFile(S(req),file);const r=await db.maybeOne('INSERT INTO archives(school_id,class_id,subject_id,uploaded_by,title,file_name,original_name,size) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',[S(req),classId,subjectId,req.user.id,title,file.filename,str(file.originalname,200),file.size]);res.status(201).json({id:Number(r.id),stored:storageEnabled()});}catch(e){if(file){removeFile(S(req),file.filename);if(storageEnabled())await removeStoredFile(S(req),file.filename).catch(()=>{});}throw e;}}));
+  router.delete('/archives/:id',ah(async(req,res)=>{const a=await db.maybeOne('SELECT * FROM archives WHERE id=$1 AND school_id=$2',[intOrNull(req.params.id),S(req)]);if(!a)throw notFound();await assertAssignedAsync(req,a.class_id,a.subject_id);await db.execute('DELETE FROM archives WHERE id=$1',[a.id]);if(storageEnabled())await removeStoredFile(S(req),a.file_name);removeFile(S(req),a.file_name);res.json({ok:true});}));
+}
+
+if (isPostgres()) {
+  router.get('/archives', ah(async(req,res)=>{const {classId,subjectId}=await assertAssignedAsync(req,req.query.class_id,req.query.subject_id);res.json({items:await db.many('SELECT id,title,original_name,size,created_at FROM archives WHERE school_id=$1 AND class_id=$2 AND subject_id=$3 ORDER BY created_at DESC',[S(req),classId,subjectId])});}));
+  router.post('/archives', uploadPdf.single('file'), ah(async(req,res)=>{const file=req.file;try{if(!file)throw bad('Fichier PDF obligatoire');verifyFile(file);const {classId,subjectId}=await assertAssignedAsync(req,req.body.class_id,req.body.subject_id);const title=str(req.body.title,160)||file.originalname.replace(/\.pdf$/i,'');if(storageEnabled())await persistFile(S(req),file);const r=await db.maybeOne('INSERT INTO archives(school_id,class_id,subject_id,uploaded_by,title,file_name,original_name,size) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',[S(req),classId,subjectId,req.user.id,title,file.filename,str(file.originalname,200),file.size]);res.status(201).json({id:Number(r.id),stored:storageEnabled()});}catch(e){if(file){removeFile(S(req),file.filename);if(storageEnabled())await removeStoredFile(S(req),file.filename).catch(()=>{});}throw e;}}));
+  router.delete('/archives/:id',ah(async(req,res)=>{const a=await db.maybeOne('SELECT * FROM archives WHERE id=$1 AND school_id=$2',[intOrNull(req.params.id),S(req)]);if(!a)throw notFound();await assertAssignedAsync(req,a.class_id,a.subject_id);await db.execute('DELETE FROM archives WHERE id=$1',[a.id]);if(storageEnabled())await removeStoredFile(S(req),a.file_name);removeFile(S(req),a.file_name);res.json({ok:true});}));
+}
+
 
 router.get('/archives', (req, res) => {
   const { classId, subjectId } = assertAssigned(req, req.query.class_id, req.query.subject_id);

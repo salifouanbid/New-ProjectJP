@@ -3,6 +3,7 @@ const express = require('express');
 const db = require('../db');
 const config = require('../config');
 const { makeUploader, verifyFile, removeFile } = require('../services/upload');
+const { persistFile, removeStoredFile, storageEnabled } = require('../services/storage');
 const { attachImages, MAX_IMAGES } = require('./news');
 const { ah, bad, notFound, str, intOrNull, normUsername, normEmail, checkPassword, tempPassword, hashPassword, isDate } = require('../services/util');
 
