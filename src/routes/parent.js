@@ -1,25 +1,21 @@
 const express = require('express');
 const db = require('../db');
 const studentViews = require('./studentViews');
-const { bad, str, intOrNull } = require('../services/util');
+const { bad, str, intOrNull, ah } = require('../services/util');
+const config = require('../config');
+const isPostgres = () => config.databaseProvider === 'postgres';
 const { makeUploader, verifyFile, removeFile } = require('../services/upload');
 
 const router = express.Router();
 
 // Un parent ne voit QUE les enfants rattachés à son compte (vérifié à chaque requête).
-function linkedStudent(req) {
-  const sid = intOrNull(req.params.studentId);
-  if (sid === null) return null;
-  const row = db
-    .prepare(
-      `SELECT s.id FROM parent_students ps JOIN students s ON s.id = ps.student_id
-       WHERE ps.parent_id = ? AND s.id = ? AND s.school_id = ?`
-    )
-    .get(req.user.id, sid, req.user.school_id);
-  return row ? row.id : null;
+async function linkedStudent(req) {
+  if (isPostgres()) { const row=await db.maybeOne('SELECT s.id FROM parent_students ps JOIN students s ON s.id=ps.student_id WHERE ps.parent_id=$1 AND s.id=$2 AND s.school_id=$3',[req.user.id,intOrNull(req.params.studentId),req.user.school_id]); return row?row.id:null; }
+  const sid=intOrNull(req.params.studentId); if(sid===null)return null; const row=db.prepare(`SELECT s.id FROM parent_students ps JOIN students s ON s.id=ps.student_id WHERE ps.parent_id=? AND s.id=? AND s.school_id=?`).get(req.user.id,sid,req.user.school_id); return row?row.id:null;
 }
 
-router.get('/children', (req, res) => {
+router.get('/children', ah(async (req, res) => {
+  if (isPostgres()) return res.json({items:await db.many('SELECT s.id,s.matricule,u.first_name,u.last_name,u.active,c.name AS class_name FROM parent_students ps JOIN students s ON s.id=ps.student_id JOIN users u ON u.id=s.user_id JOIN classes c ON c.id=s.class_id WHERE ps.parent_id=$1 AND s.school_id=$2 ORDER BY u.first_name',[req.user.id,req.user.school_id])});
   const items = db
     .prepare(
       `SELECT s.id, s.matricule, u.first_name, u.last_name, u.active, c.name AS class_name
@@ -28,12 +24,8 @@ router.get('/children', (req, res) => {
     )
     .all(req.user.id, req.user.school_id);
   res.json({ items });
-});
+}));
 
-router.use('/children/:studentId', (req, res, next) => {
-  if (!linkedStudent(req)) return res.status(404).json({ error: 'Élève introuvable' });
-  next();
-});
 router.use('/children/:studentId', studentViews(linkedStudent));
 
 const uploadProof = makeUploader(['.pdf', '.png', '.jpg', '.jpeg'], 5);
