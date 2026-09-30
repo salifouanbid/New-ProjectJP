@@ -1,7 +1,9 @@
 // Espace PROFESSEUR : chaque professeur n'accède qu'aux classes/matières qui lui sont attribuées.
 const express = require('express');
 const db = require('../db');
-const { bad, notFound, str, intOrNull, isDate } = require('../services/util');
+const { bad, notFound, str, intOrNull, isDate, ah } = require('../services/util');
+const config = require('../config');
+const isPostgres = () => config.databaseProvider === 'postgres';
 const { makeUploader, verifyFile, removeFile } = require('../services/upload');
 const { INTERRO_MAX, DEVOIR_MAX } = require('../services/grades');
 
@@ -18,6 +20,24 @@ function assertAssigned(req, classId, subjectId) {
   if (!row) { const e = new Error("Vous n'enseignez pas cette matière dans cette classe"); e.status = 403; throw e; }
   return { classId: c, subjectId: s };
 }
+async function assertAssignedAsync(req, classId, subjectId) {
+  const c = intOrNull(classId), sub = intOrNull(subjectId);
+  if (c === null) throw bad('Classe invalide');
+  const row = sub === null
+    ? await db.maybeOne('SELECT 1 FROM teaching_assignments WHERE school_id = $1 AND teacher_id = $2 AND class_id = $3', [S(req), req.user.id, c])
+    : await db.maybeOne('SELECT 1 FROM teaching_assignments WHERE school_id = $1 AND teacher_id = $2 AND class_id = $3 AND subject_id = $4', [S(req), req.user.id, c, sub]);
+  if (!row) { const e = new Error("Vous n'enseignez pas cette matière dans cette classe"); e.status = 403; throw e; }
+  return { classId: c, subjectId: sub };
+}
+async function getTermAsync(req, id) {
+  const t = await db.maybeOne('SELECT * FROM terms WHERE id = $1 AND school_id = $2', [intOrNull(id), S(req)]);
+  if (!t) throw bad('Période introuvable');
+  return t;
+}
+async function classStudentsAsync(req, classId) {
+  return db.many(`SELECT s.id, s.matricule, u.first_name, u.last_name FROM students s JOIN users u ON u.id = s.user_id WHERE s.school_id = $1 AND s.class_id = $2 AND u.active = true ORDER BY u.last_name, u.first_name`, [S(req), classId]);
+}
+
 function getTerm(req, id) {
   const t = db.prepare('SELECT * FROM terms WHERE id = ? AND school_id = ?').get(intOrNull(id), S(req));
   if (!t) throw bad('Période introuvable');
@@ -32,7 +52,8 @@ function classStudents(req, classId) {
     .all(S(req), classId);
 }
 
-router.get('/context', (req, res) => {
+router.get('/context', ah(async (req, res) => {
+  if (isPostgres()) { const assignments = await db.many(`SELECT ta.class_id, ta.subject_id, c.name AS class_name, s.name AS subject_name, (SELECT COUNT(*) FROM students st WHERE st.class_id = c.id) AS students FROM teaching_assignments ta JOIN classes c ON c.id = ta.class_id JOIN subjects s ON s.id = ta.subject_id WHERE ta.school_id = $1 AND ta.teacher_id = $2 ORDER BY c.name, s.name`, [S(req), req.user.id]); const terms = await db.many("SELECT id, name, status FROM terms WHERE school_id = $1 AND status != 'upcoming' ORDER BY position", [S(req)]); return res.json({ assignments, terms }); }
   const assignments = db
     .prepare(
       `SELECT ta.class_id, ta.subject_id, c.name AS class_name, s.name AS subject_name,
@@ -43,10 +64,11 @@ router.get('/context', (req, res) => {
     .all(S(req), req.user.id);
   const terms = db.prepare("SELECT id, name, status FROM terms WHERE school_id = ? AND status != 'upcoming' ORDER BY position").all(S(req));
   res.json({ assignments, terms });
-});
+}));
 
 /* ---------- Notes ---------- */
-router.get('/grades', (req, res) => {
+router.get('/grades', ah(async (req, res) => {
+  if (isPostgres()) { const { classId, subjectId } = await assertAssignedAsync(req, req.query.class_id, req.query.subject_id); const term = await getTermAsync(req, req.query.term_id); const students = await classStudentsAsync(req, classId); const grades = await db.many('SELECT g.student_id, g.type, g.idx, g.value FROM grades g JOIN students s ON s.id = g.student_id WHERE g.school_id = $1 AND g.term_id = $2 AND g.subject_id = $3 AND s.class_id = $4', [S(req), term.id, subjectId, classId]); const rows = students.map(st => { const interro=Array(INTERRO_MAX).fill(null), devoir=Array(DEVOIR_MAX).fill(null); grades.filter(g=>Number(g.student_id)===Number(st.id)).forEach(g=>{ if(g.type==='interro') interro[g.idx-1]=g.value; else if(g.idx<=DEVOIR_MAX) devoir[g.idx-1]=g.value; }); return {...st,interro,devoir}; }); return res.json({term,locked:term.status!=='open',interro_max:INTERRO_MAX,devoir_max:DEVOIR_MAX,students:rows}); }
   const { classId, subjectId } = assertAssigned(req, req.query.class_id, req.query.subject_id);
   const term = getTerm(req, req.query.term_id);
   const students = classStudents(req, classId);
@@ -63,46 +85,24 @@ router.get('/grades', (req, res) => {
     return { ...st, interro, devoir };
   });
   res.json({ term, locked: term.status !== 'open', interro_max: INTERRO_MAX, devoir_max: DEVOIR_MAX, students: rows });
-});
+}));
 
-router.put('/grades', (req, res) => {
+router.put('/grades', ah(async (req, res) => {
   const b = req.body || {};
-  const { classId, subjectId } = assertAssigned(req, b.class_id, b.subject_id);
-  const term = getTerm(req, b.term_id);
-  if (term.status !== 'open') { const e = new Error('Cette période est clôturée : les notes sont gelées'); e.status = 423; throw e; }
-  const entries = Array.isArray(b.entries) ? b.entries : [];
-  if (entries.length > 2000) throw bad('Trop de notes envoyées');
-  const ids = new Set(classStudents(req, classId).map((s) => s.id));
-  const upsert = db.prepare(
-    `INSERT INTO grades (school_id, student_id, subject_id, term_id, type, idx, value, created_by)
-     VALUES (?,?,?,?,?,?,?,?)
-     ON CONFLICT(student_id, subject_id, term_id, type, idx)
-     DO UPDATE SET value = excluded.value, created_by = excluded.created_by, updated_at = datetime('now')`
-  );
-  const del = db.prepare('DELETE FROM grades WHERE student_id = ? AND subject_id = ? AND term_id = ? AND type = ? AND idx = ? AND school_id = ?');
-  // Transaction : tout est enregistré, ou rien (jamais de données partielles).
-  db.transaction(() => {
-    for (const e of entries) {
-      const sid = intOrNull(e.student_id);
-      if (!ids.has(sid)) throw bad('Élève inconnu dans cette classe');
-      if (!['interro', 'devoir'].includes(e.type)) throw bad('Type de note invalide');
-      const idx = intOrNull(e.idx);
-      const max = e.type === 'interro' ? INTERRO_MAX : DEVOIR_MAX;
-      if (idx === null || idx < 1 || idx > max) throw bad(`Numéro de ${e.type === 'interro' ? 'interrogation' : 'devoir'} invalide`);
-      if (e.value === null || e.value === '' || e.value === undefined) {
-        del.run(sid, subjectId, term.id, e.type, idx, S(req));
-        continue;
-      }
-      const v = Number(e.value);
-      if (!Number.isFinite(v) || v < 0 || v > 20) throw bad('Les notes doivent être comprises entre 0 et 20');
-      upsert.run(S(req), sid, subjectId, term.id, e.type, idx, Math.round(v * 100) / 100, req.user.id);
-    }
-  })();
-  res.json({ ok: true, saved: entries.length });
-});
-
+  if (isPostgres()) {
+    const { classId, subjectId } = await assertAssignedAsync(req, b.class_id, b.subject_id);
+    const term = await getTermAsync(req, b.term_id);
+    if (term.status !== 'open') { const e = new Error('Cette période est clôturée : les notes sont gelées'); e.status = 423; throw e; }
+    const entries = Array.isArray(b.entries) ? b.entries : []; if (entries.length > 2000) throw bad('Trop de notes envoyées');
+    const ids = new Set((await classStudentsAsync(req, classId)).map(x => Number(x.id)));
+    await db.transaction(async tx => { for (const e of entries) { const sid=intOrNull(e.student_id); if(!ids.has(Number(sid))) throw bad('Élève inconnu dans cette classe'); if(!['interro','devoir'].includes(e.type)) throw bad('Type de note invalide'); const idx=intOrNull(e.idx), max=e.type==='interro'?INTERRO_MAX:DEVOIR_MAX; if(idx===null||idx<1||idx>max) throw bad('Numéro de note invalide'); if(e.value===null||e.value===''||e.value===undefined){await tx.execute('DELETE FROM grades WHERE school_id=$1 AND student_id=$2 AND subject_id=$3 AND term_id=$4 AND type=$5 AND idx=$6',[S(req),sid,subjectId,term.id,e.type,idx]);continue;} const v=Number(e.value); if(!Number.isFinite(v)||v<0||v>20) throw bad('Les notes doivent être comprises entre 0 et 20'); await tx.execute(`INSERT INTO grades (school_id,student_id,subject_id,term_id,type,idx,value,created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(student_id,subject_id,term_id,type,idx) DO UPDATE SET value=EXCLUDED.value,created_by=EXCLUDED.created_by,updated_at=NOW()`,[S(req),sid,subjectId,term.id,e.type,idx,Math.round(v*100)/100,req.user.id]); } });
+    return res.json({ok:true,saved:entries.length});
+  }
+  const { classId, subjectId } = assertAssigned(req, b.class_id, b.subject_id); const term=getTerm(req,b.term_id); if(term.status!=='open'){const e=new Error('Cette période est clôturée : les notes sont gelées');e.status=423;throw e;} const entries=Array.isArray(b.entries)?b.entries:[]; const ids=new Set(classStudents(req,classId).map(s=>s.id)); const upsert=db.prepare(`INSERT INTO grades (school_id,student_id,subject_id,term_id,type,idx,value,created_by) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(student_id,subject_id,term_id,type,idx) DO UPDATE SET value=excluded.value,created_by=excluded.created_by,updated_at=datetime('now')`); const del=db.prepare('DELETE FROM grades WHERE student_id=? AND subject_id=? AND term_id=? AND type=? AND idx=? AND school_id=?'); db.transaction(()=>{for(const e of entries){const sid=intOrNull(e.student_id);if(!ids.has(sid))throw bad('Élève inconnu dans cette classe');if(!['interro','devoir'].includes(e.type))throw bad('Type de note invalide');const idx=intOrNull(e.idx),max=e.type==='interro'?INTERRO_MAX:DEVOIR_MAX;if(idx===null||idx<1||idx>max)throw bad('Numéro de note invalide');if(e.value===null||e.value==='')del.run(sid,subjectId,term.id,e.type,idx,S(req));else upsert.run(S(req),sid,subjectId,term.id,e.type,idx,Number(e.value),req.user.id);}})(); res.json({ok:true,saved:entries.length});
+}));
 /* ---------- Cahier d'appel ---------- */
-router.get('/attendance', (req, res) => {
+router.get('/attendance', ah(async (req, res) => {
+  if (isPostgres()) { const {classId,subjectId}=await assertAssignedAsync(req,req.query.class_id,req.query.subject_id); if(subjectId===null) throw bad('Matière invalide'); if(!isDate(req.query.date)) throw bad('Date invalide'); const students=await classStudentsAsync(req,classId); const rows=await db.many('SELECT student_id,status,justified FROM attendance WHERE school_id=$1 AND class_id=$2 AND subject_id=$3 AND date=$4',[S(req),classId,subjectId,req.query.date]); return res.json({students:students.map(st=>{const r=rows.find(x=>Number(x.student_id)===Number(st.id));return {...st,status:r?r.status:null,justified:r?!!r.justified:false};})}); }
   const { classId, subjectId } = assertAssigned(req, req.query.class_id, req.query.subject_id);
   if (subjectId === null) throw bad('Matière invalide');
   if (!isDate(req.query.date)) throw bad('Date invalide');
@@ -115,36 +115,13 @@ router.get('/attendance', (req, res) => {
       return { ...st, status: r ? r.status : null, justified: r ? !!r.justified : false };
     }),
   });
-});
+}));
 
-router.put('/attendance', (req, res) => {
-  const b = req.body || {};
-  const { classId, subjectId } = assertAssigned(req, b.class_id, b.subject_id);
-  if (subjectId === null) throw bad('Matière invalide');
-  if (!isDate(b.date)) throw bad('Date invalide');
-  if (Date.parse(b.date) > Date.now() + 36 * 3600 * 1000) throw bad('La date ne peut pas être dans le futur');
-  const entries = Array.isArray(b.entries) ? b.entries : [];
-  const ids = new Set(classStudents(req, classId).map((s) => s.id));
-  // Sauvegarde groupée et transactionnelle : l'appel est enregistré en entier ou pas du tout.
-  db.transaction(() => {
-    for (const e of entries) {
-      const sid = intOrNull(e.student_id);
-      if (!ids.has(sid)) throw bad('Élève inconnu dans cette classe');
-      if (e.status === null || e.status === undefined || e.status === '') {
-        db.prepare('DELETE FROM attendance WHERE student_id = ? AND subject_id = ? AND date = ? AND school_id = ?').run(sid, subjectId, b.date, S(req));
-        continue;
-      }
-      if (!['present', 'absent', 'late'].includes(e.status)) throw bad('Statut invalide');
-      db.prepare(
-        `INSERT INTO attendance (school_id, student_id, class_id, subject_id, date, status, recorded_by)
-         VALUES (?,?,?,?,?,?,?)
-         ON CONFLICT(student_id, subject_id, date) DO UPDATE SET status = excluded.status, recorded_by = excluded.recorded_by`
-      ).run(S(req), sid, classId, subjectId, b.date, e.status, req.user.id);
-    }
-  })();
-  res.json({ ok: true, saved: entries.length });
-});
-
+router.put('/attendance', ah(async (req, res) => {
+  const b=req.body||{};
+  if(isPostgres()){const {classId,subjectId}=await assertAssignedAsync(req,b.class_id,b.subject_id);if(subjectId===null)throw bad('Matière invalide');if(!isDate(b.date))throw bad('Date invalide');if(Date.parse(b.date)>Date.now()+36*3600*1000)throw bad('La date ne peut pas être dans le futur');const entries=Array.isArray(b.entries)?b.entries:[];const ids=new Set((await classStudentsAsync(req,classId)).map(x=>Number(x.id)));await db.transaction(async tx=>{for(const e of entries){const sid=intOrNull(e.student_id);if(!ids.has(Number(sid)))throw bad('Élève inconnu dans cette classe');if(e.status===null||e.status===undefined||e.status===''){await tx.execute('DELETE FROM attendance WHERE school_id=$1 AND student_id=$2 AND subject_id=$3 AND date=$4',[S(req),sid,subjectId,b.date]);continue;}if(!['present','absent','late'].includes(e.status))throw bad('Statut invalide');await tx.execute(`INSERT INTO attendance(school_id,student_id,class_id,subject_id,date,status,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(student_id,subject_id,date) DO UPDATE SET status=EXCLUDED.status,recorded_by=EXCLUDED.recorded_by`,[S(req),sid,classId,subjectId,b.date,e.status,req.user.id]);}});return res.json({ok:true,saved:entries.length});}
+  const {classId,subjectId}=assertAssigned(req,b.class_id,b.subject_id);if(subjectId===null)throw bad('Matière invalide');if(!isDate(b.date))throw bad('Date invalide');if(Date.parse(b.date)>Date.now()+36*3600*1000)throw bad('La date ne peut pas être dans le futur');const entries=Array.isArray(b.entries)?b.entries:[];const ids=new Set(classStudents(req,classId).map(s=>s.id));db.transaction(()=>{for(const e of entries){const sid=intOrNull(e.student_id);if(!ids.has(sid))throw bad('Élève inconnu dans cette classe');if(e.status===null||e.status===undefined||e.status==='')db.prepare('DELETE FROM attendance WHERE student_id=? AND subject_id=? AND date=? AND school_id=?').run(sid,subjectId,b.date,S(req));else db.prepare(`INSERT INTO attendance(school_id,student_id,class_id,subject_id,date,status,recorded_by) VALUES(?,?,?,?,?,?,?) ON CONFLICT(student_id,subject_id,date) DO UPDATE SET status=excluded.status,recorded_by=excluded.recorded_by`).run(S(req),sid,classId,subjectId,b.date,e.status,req.user.id);}})();res.json({ok:true,saved:entries.length});
+}));
 /* ---------- Cahier de texte : chapitres + séances ---------- */
 router.get('/chapters', (req, res) => {
   const { classId, subjectId } = assertAssigned(req, req.query.class_id, req.query.subject_id);
