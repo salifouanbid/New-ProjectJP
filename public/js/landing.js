@@ -4,7 +4,7 @@ import { api, T, h, setHtml, applyI18n, $, $$ } from './common.js';
    RÉGLAGES À PERSONNALISER — tout est ici, en un seul endroit.
    ========================================================================== */
 // Ton numéro WhatsApp professionnel, SANS le +, ni espaces (indicatif Bénin = 229).
-const WHATSAPP_NUMBER = '2290155873800'; // ⚠️ à remplacer par ton vrai numéro avant publication
+const WHATSAPP_NUMBER = '2290151793875'; // ⚠️ à remplacer par ton vrai numéro avant publication
 const WHATSAPP_MESSAGE = T(
   "Bonjour, je m'intéresse au Portail Scolaire pour mon établissement. Pouvez-vous m'en dire plus ?",
   "Hello, I'm interested in the School Portal for my school. Could you tell me more?"
@@ -19,7 +19,7 @@ const PLANS = [
       T('Cahier de texte & portail parents', 'Class log & parents portal'), T('Page publique & actualités', 'Public page & news')] },
   { key: 'school', name: T('École', 'School'), limit: 400, monthly: 29900, featured: true,
     features: [T('Jusqu\u2019à 400 élèves', 'Up to 400 students'), T('Tout Starter, plus :', 'Everything in Starter, plus:'),
-      T('Alertes aux parents (WhatsApp)', 'Parent alerts (WhatsApp)'), T('Logo & bulletin personnalisés', 'Custom logo & report card'),
+      T('Alertes aux parents (WhatsApp prevu pas encore effectif)', 'Parent alerts (WhatsApp not done yet)'), T('Logo & bulletin personnalisés en developpement ', 'Custom logo & report card not done yet'),
       T('Plusieurs administrateurs', 'Multiple administrators')] },
   { key: 'plus', name: T('Établissement+', 'School+'), limit: 800, monthly: 54900,
     features: [T('Jusqu\u2019à 800 élèves', 'Up to 800 students'), T('Tout École, plus :', 'Everything in School, plus:'),
