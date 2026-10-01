@@ -126,7 +126,7 @@ async function main() {
     db.prepare("INSERT INTO users (school_id, username, password_hash, role, first_name, last_name) VALUES (NULL, ?, ?, 'superadmin', 'Propriétaire', 'Plateforme')").run(config.superadmin.username, hash);
     console.log(`  + super-admin : ${config.superadmin.username}`);
   }
-  await seedSchool({ code: 'jean-piaget-1', name: 'Collège Jean Piaget 1', city: 'Abomey-Calavi' }, hash);
+  await seedSchool({ code: 'jean-piaget-1', name: 'Saphir', city: 'Abomey-Calavi' }, hash);
   await seedSchool({ code: 'lycee-demo', name: 'Lycée Démo Excellence', city: 'Cotonou' }, hash);
   console.log(`\nTerminé. Mot de passe de TOUS les comptes de démo : ${PASSWORD}`);
   console.log('Établissements : jean-piaget-1  |  lycee-demo');

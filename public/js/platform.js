@@ -47,7 +47,7 @@ async function schoolsView() {
   bind(root, {
     new: () => openModal({
       title: T('Nouvel établissement', 'New school'), wide: true,
-      body: h`<div class="row"><div class="field"><label>${T("Nom de l'établissement", 'School name')}</label><input name="name" placeholder="Collège Jean Piaget 1"></div><div class="field"><label>${T('Ville', 'City')}</label><input name="city"></div></div>
+      body: h`<div class="row"><div class="field"><label>${T("Nom de l'établissement", 'School name')}</label><input name="name" placeholder="Saphir"></div><div class="field"><label>${T('Ville', 'City')}</label><input name="city"></div></div>
         <div class="row"><div class="field"><label>${T("Code de connexion (minuscules, chiffres, tirets)", 'Login code (lowercase, digits, dashes)')}</label><input name="code" placeholder="jean-piaget-1" autocapitalize="none"></div><div class="field"><label>${T('Année scolaire', 'School year')}</label><input name="academic_year" placeholder="2026-2027"></div></div>
         <h3 class="mt">${T('Compte du directeur / administrateur', 'Head / administrator account')}</h3>
         <div class="row"><div class="field"><label>${T('Prénom', 'First name')}</label><input name="admin_first_name"></div><div class="field"><label>${T('Nom', 'Last name')}</label><input name="admin_last_name"></div></div>
