@@ -5,6 +5,7 @@ const db = require('../db');
 const config = require('../config');
 const { intOrNull, ah } = require('../services/util');
 const { filePath } = require('../services/upload');
+const { readStoredFile, storageEnabled } = require('../services/storage');
 
 const MAX_IMAGES = 6;
 
@@ -41,8 +42,9 @@ async function feedAsync(schoolId, includeMembers) {
   return { news, events };
 }
 
-function sendImage(res, schoolId, row, isPublic) {
+async function sendImage(res, schoolId, row, isPublic) {
   if (!row || !row.file_name) return res.status(404).json({ error: 'Image introuvable' });
+  if (config.databaseProvider === 'postgres' && storageEnabled()) { const stored = await readStoredFile(schoolId, row.file_name); if (!stored) return res.status(404).json({ error: 'Image introuvable' }); res.set('Cache-Control', `${isPublic ? 'public' : 'private'}, max-age=86400`); return res.type(stored.contentType).send(stored.buffer); }
   const p = filePath(schoolId, row.file_name);
   if (!fs.existsSync(p)) return res.status(404).json({ error: 'Image introuvable' });
   res.set('Cache-Control', `${isPublic ? 'public' : 'private'}, max-age=86400`);
@@ -59,7 +61,7 @@ router.get('/:id/image/:imageId', ah(async (req, res) => {
   const row = config.databaseProvider === 'postgres'
     ? await db.maybeOne('SELECT file_name FROM announcement_images WHERE id = $1 AND announcement_id = $2 AND school_id = $3', [intOrNull(req.params.imageId), intOrNull(req.params.id), req.user.school_id])
     : db.prepare('SELECT file_name FROM announcement_images WHERE id = ? AND announcement_id = ? AND school_id = ?').get(intOrNull(req.params.imageId), intOrNull(req.params.id), req.user.school_id);
-  sendImage(res, req.user.school_id, row, false);
+  await sendImage(res, req.user.school_id, row, false);
 }));
 
 module.exports = router;

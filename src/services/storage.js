@@ -23,11 +23,11 @@ async function storageRequest(method, object, body, contentType) {
     headers,
     body,
   });
-  if (!response.ok && !(method === 'DELETE' && response.status === 404)) {
+  if (!response.ok && !((method === 'DELETE' || method === 'GET') && response.status === 404)) {
     const text = await response.text();
     throw new Error(`Supabase Storage ${method} failed (${response.status}): ${text.slice(0, 300)}`);
   }
-  return true;
+  return response;
 }
 
 async function persistFile(schoolId, file) {
@@ -38,10 +38,18 @@ async function persistFile(schoolId, file) {
   return true;
 }
 
+async function readStoredFile(schoolId, fileName) {
+  const response = await storageRequest('GET', objectPath(schoolId, fileName), null);
+  if (!response) return null;
+  if (response.status === 404) return null;
+  return { buffer: Buffer.from(await response.arrayBuffer()), contentType: response.headers.get('content-type') || 'application/octet-stream' };
+}
+
 async function removeStoredFile(schoolId, fileName) {
-  return storageRequest('DELETE', objectPath(schoolId, fileName), null);
+  const response = await storageRequest('DELETE', objectPath(schoolId, fileName), null);
+  return Boolean(response);
 }
 
 function storageEnabled() { return Boolean(storageConfig()); }
 
-module.exports = { storageConfig, storageEnabled, persistFile, removeStoredFile, objectPath };
+module.exports = { storageConfig, storageEnabled, persistFile, readStoredFile, removeStoredFile, objectPath };
