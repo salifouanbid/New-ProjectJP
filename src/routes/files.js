@@ -1,38 +1,17 @@
-// Téléchargement sécurisé des fichiers : jamais de dossier public, chaque accès est contrôlé.
 const express = require('express');
 const fs = require('fs');
 const db = require('../db');
-const { intOrNull, notFound } = require('../services/util');
+const config = require('../config');
+const { intOrNull, notFound, ah } = require('../services/util');
 const { filePath } = require('../services/upload');
-
+const { readStoredFile, storageEnabled } = require('../services/storage');
 const router = express.Router();
-
-router.get('/archives/:id', (req, res) => {
-  const u = req.user;
-  const a = db.prepare('SELECT * FROM archives WHERE id = ? AND school_id = ?').get(intOrNull(req.params.id), u.school_id);
-  if (!a) throw notFound();
-  let allowed = false;
-  if (u.role === 'admin') allowed = true;
-  else if (u.role === 'teacher') allowed = !!db.prepare('SELECT 1 FROM teaching_assignments WHERE teacher_id = ? AND class_id = ? AND subject_id = ?').get(u.id, a.class_id, a.subject_id);
-  else if (u.role === 'student') allowed = !!db.prepare('SELECT 1 FROM students WHERE user_id = ? AND class_id = ?').get(u.id, a.class_id);
-  else if (u.role === 'parent')
-    allowed = !!db.prepare('SELECT 1 FROM parent_students ps JOIN students s ON s.id = ps.student_id WHERE ps.parent_id = ? AND s.class_id = ?').get(u.id, a.class_id);
-  if (!allowed) return res.status(403).json({ error: 'Accès refusé' });
-  const p = filePath(u.school_id, a.file_name);
-  if (!fs.existsSync(p)) throw notFound('Fichier manquant');
-  res.download(p, a.original_name);
-});
-
-router.get('/justifications/:id', (req, res) => {
-  const u = req.user;
-  const j = db.prepare('SELECT * FROM justifications WHERE id = ? AND school_id = ?').get(intOrNull(req.params.id), u.school_id);
-  if (!j || !j.file_name) throw notFound();
-  let allowed = u.role === 'admin';
-  if (u.role === 'parent') allowed = !!db.prepare('SELECT 1 FROM parent_students WHERE parent_id = ? AND student_id = ?').get(u.id, j.student_id);
-  if (!allowed) return res.status(403).json({ error: 'Accès refusé' });
-  const p = filePath(u.school_id, j.file_name);
-  if (!fs.existsSync(p)) throw notFound('Fichier manquant');
-  res.download(p, j.original_name || 'justificatif');
-});
-
-module.exports = router;
+function safeName(v){return String(v||'fichier').replace(/"/g,'');}
+if (config.databaseProvider === 'postgres') {
+  router.get('/archives/:id', ah(async (req,res)=>{const u=req.user;const a=await db.maybeOne(`SELECT a.*, EXISTS(SELECT 1 FROM teaching_assignments ta WHERE ta.school_id=a.school_id AND ta.teacher_id=$2 AND ta.class_id=a.class_id AND ta.subject_id=a.subject_id) AS teacher_allowed, EXISTS(SELECT 1 FROM students st WHERE st.school_id=a.school_id AND st.user_id=$2 AND st.class_id=a.class_id) AS student_allowed, EXISTS(SELECT 1 FROM parent_students ps JOIN students st ON st.id=ps.student_id WHERE st.school_id=a.school_id AND ps.parent_id=$2 AND st.class_id=a.class_id) AS parent_allowed FROM archives a WHERE a.id=$1 AND a.school_id=$3`,[intOrNull(req.params.id),u.id,u.school_id]);if(!a)throw notFound();const allowed=u.role==='admin'||(u.role==='teacher'&&a.teacher_allowed)||(u.role==='student'&&a.student_allowed)||(u.role==='parent'&&a.parent_allowed);if(!allowed)return res.status(403).json({error:'Accès refusé'});if(storageEnabled()){const x=await readStoredFile(u.school_id,a.file_name);if(!x)throw notFound('Fichier manquant');res.type(x.contentType).set('Content-Disposition',`attachment; filename="${safeName(a.original_name)}"`);return res.send(x.buffer);}const p=filePath(u.school_id,a.file_name);if(!fs.existsSync(p))throw notFound('Fichier manquant');res.download(p,a.original_name);}));
+  router.get('/justifications/:id', ah(async(req,res)=>{const u=req.user;const j=await db.maybeOne('SELECT j.*,EXISTS(SELECT 1 FROM parent_students ps WHERE ps.parent_id=$2 AND ps.student_id=j.student_id) AS parent_allowed FROM justifications j WHERE j.id=$1 AND j.school_id=$3',[intOrNull(req.params.id),u.id,u.school_id]);if(!j||!j.file_name)throw notFound();if(!(u.role==='admin'||(u.role==='parent'&&j.parent_allowed)))return res.status(403).json({error:'Accès refusé'});if(storageEnabled()){const x=await readStoredFile(u.school_id,j.file_name);if(!x)throw notFound('Fichier manquant');res.type(x.contentType).set('Content-Disposition',`attachment; filename="${safeName(j.original_name||'justificatif')}"`);return res.send(x.buffer);}const p=filePath(u.school_id,j.file_name);if(!fs.existsSync(p))throw notFound('Fichier manquant');res.download(p,j.original_name||'justificatif');}));
+} else {
+  router.get('/archives/:id',(req,res)=>{const u=req.user,a=db.prepare('SELECT * FROM archives WHERE id=? AND school_id=?').get(intOrNull(req.params.id),u.school_id);if(!a)throw notFound();let allowed=u.role==='admin';if(u.role==='teacher')allowed=!!db.prepare('SELECT 1 FROM teaching_assignments WHERE teacher_id=? AND class_id=? AND subject_id=?').get(u.id,a.class_id,a.subject_id);else if(u.role==='student')allowed=!!db.prepare('SELECT 1 FROM students WHERE user_id=? AND class_id=?').get(u.id,a.class_id);else if(u.role==='parent')allowed=!!db.prepare('SELECT 1 FROM parent_students ps JOIN students s ON s.id=ps.student_id WHERE ps.parent_id=? AND s.class_id=?').get(u.id,a.class_id);if(!allowed)return res.status(403).json({error:'Accès refusé'});const p=filePath(u.school_id,a.file_name);if(!fs.existsSync(p))throw notFound('Fichier manquant');res.download(p,a.original_name);});
+  router.get('/justifications/:id',(req,res)=>{const u=req.user,j=db.prepare('SELECT * FROM justifications WHERE id=? AND school_id=?').get(intOrNull(req.params.id),u.school_id);if(!j||!j.file_name)throw notFound();const allowed=u.role==='admin'||(u.role==='parent'&&!!db.prepare('SELECT 1 FROM parent_students WHERE parent_id=? AND student_id=?').get(u.id,j.student_id));if(!allowed)return res.status(403).json({error:'Accès refusé'});const p=filePath(u.school_id,j.file_name);if(!fs.existsSync(p))throw notFound('Fichier manquant');res.download(p,j.original_name||'justificatif');});
+}
+module.exports=router;

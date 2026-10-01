@@ -66,7 +66,7 @@ async function main() {
     check('CSRF : POST sans en-tête refusé', (await anon.req('POST', '/api/auth/login', { school_code: 'jean-piaget-1', username: 'admin', password: PWD }, { noCsrf: true })).status === 403);
     check('Mauvais mot de passe -> 401', (await anon.login('jean-piaget-1', 'admin', 'faux-mot-de-passe')).status === 401);
     check('Mauvais code établissement -> 401', (await anon.login('inconnu', 'admin')).status === 401);
-    check('Page de connexion par code : établissement connu', (await anon.get('/api/public/school/jean-piaget-1')).data.name === 'Collège Jean Piaget 1');
+    check('Page de connexion par code : établissement connu', (await anon.get('/api/public/school/jean-piaget-1')).data.name === 'Saphir');
     check('Page de connexion par code : établissement inconnu -> 404', (await anon.get('/api/public/school/nope')).status === 404);
     check('Page vitrine /e/<code> servie', (await fetch(BASE + '/e/jean-piaget-1')).status === 200);
     check('Page de connexion /e/<code>/connexion servie', (await fetch(BASE + '/e/jean-piaget-1/connexion')).status === 200);
@@ -248,7 +248,7 @@ async function main() {
     const xss = await admin.post('/api/admin/announcements', { title: '<script>alert(1)</script>', body: '<img src=x onerror=alert(1)>', category: 'news', audience: 'public' });
     check('Contenu HTML accepté comme texte (échappé à l\'affichage)', xss.status === 201);
     check('L\'admin supprime une publication', (await admin.del(`/api/admin/announcements/${xss.data.id}`)).status === 200 && (await admin.del(`/api/admin/announcements/${ann.data.id}`)).status === 200);
-    const setts = await admin.put('/api/admin/settings', { name: 'Collège Jean Piaget 1', city: 'Abomey-Calavi', academic_year: '2026-2027', parent_bulletin_min_avg: 10, description: 'Présentation mise à jour', address: 'Rue 12', phone: '+229 01 11 11 11 11', contact_email: 'direction@piaget.bj', hours: '8h-17h' });
+    const setts = await admin.put('/api/admin/settings', { name: 'Saphir', city: 'Abomey-Calavi', academic_year: '2026-2027', parent_bulletin_min_avg: 10, description: 'Présentation mise à jour', address: 'Rue 12', phone: '+229 01 11 11 11 11', contact_email: 'direction@piaget.bj', hours: '8h-17h' });
     check('Page publique : paramètres modifiables', setts.status === 200 && (await anon.get('/api/public/school/jean-piaget-1')).data.description === 'Présentation mise à jour');
     check('Email de contact invalide refusé', (await admin.put('/api/admin/settings', { name: 'X', parent_bulletin_min_avg: 10, contact_email: 'pas-un-email' })).status === 400);
 
