@@ -10,6 +10,10 @@ const { getPostgresDatabase } = require('./src/persistence/runtime');
 const mw = require('./src/middleware/auth');
 const { ensureSuperadmin } = require('./src/bootstrap');
 
+// Vercel charge le module sans passer par require.main : initialiser le compte
+// propriétaire avant de traiter la première requête, sans lancer listen().
+const serverlessBootstrap = require.main === module ? Promise.resolve() : ensureSuperadmin();
+
 const app = express();
 app.disable('x-powered-by');
 if (config.trustProxy) app.set('trust proxy', config.trustProxy); // derrière Nginx / hébergeur (HTTPS)
@@ -34,6 +38,7 @@ app.use(
   })
 );
 app.use(express.json({ limit: '200kb' }));
+app.use((req, res, next) => serverlessBootstrap.then(() => next()).catch(next));
 app.use(cookieParser());
 
 /* ---------- Supervision (pour un service de surveillance type UptimeRobot) ---------- */
