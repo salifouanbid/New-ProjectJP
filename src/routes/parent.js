@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const studentViews = require('./studentViews');
+const { getPreferences, setPreferences } = require('../services/notifications');
 const { bad, str, intOrNull, ah } = require('../services/util');
 const config = require('../config');
 const isPostgres = () => config.databaseProvider === 'postgres';
@@ -8,6 +9,8 @@ const { makeUploader, verifyFile, removeFile } = require('../services/upload');
 const { persistFile, removeStoredFile, storageEnabled } = require('../services/storage');
 
 const router = express.Router();
+router.get('/notifications/preferences', ah(async (req,res)=>res.json(await getPreferences(req.user.id))));
+router.put('/notifications/preferences', ah(async (req,res)=>{ const b=req.body||{}; res.json(await setPreferences(req.user.id,{ whatsapp_enabled:b.whatsapp_enabled, email_enabled:b.email_enabled })); }));
 
 // Un parent ne voit QUE les enfants rattachés à son compte (vérifié à chaque requête).
 async function linkedStudent(req) {

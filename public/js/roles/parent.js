@@ -19,6 +19,21 @@ async function withChild(root, render) {
   await show();
 }
 
+async function notificationsView(root) {
+  const pref = await api('/parent/notifications/preferences');
+  setHtml(root, h`<div class="card"><h2>${T('Préférences de notifications', 'Notification preferences')}</h2>
+    <p class="muted">${T('Choisissez comment recevoir les informations concernant vos enfants. Le numéro WhatsApp doit être renseigné par la direction.', 'Choose how to receive information about your children. Your WhatsApp number must be entered by the school administration.')}</p>
+    <label class="check"><input id="wa-enabled" type="checkbox" ${pref.whatsapp_enabled ? 'checked' : ''}> WhatsApp</label>
+    <label class="check"><input id="email-enabled" type="checkbox" ${pref.email_enabled ? 'checked' : ''}> Email</label>
+    <div class="actions"><button class="btn btn-primary" id="save-notifications">${T('Enregistrer', 'Save')}</button></div>
+    <div id="notification-result" class="muted small"></div>
+  </div>`);
+  $('#save-notifications', root).onclick = async () => {
+    try { await api('/parent/notifications/preferences', { method: 'PUT', body: { whatsapp_enabled: $('#wa-enabled', root).checked, email_enabled: $('#email-enabled', root).checked } }); $('#notification-result', root).textContent = T('Préférences enregistrées.', 'Preferences saved.'); }
+    catch (e) { $('#notification-result', root).textContent = e.message; }
+  };
+}
+
 export default {
   nav: [
     { key: 'dashboard', icon: '📊', fr: 'Tableau de bord', en: 'Dashboard' },
@@ -26,6 +41,7 @@ export default {
     { key: 'attendance', icon: '🗓️', fr: 'Assiduité', en: 'Attendance' },
     { key: 'programme', icon: '📚', fr: 'Programme', en: 'Curriculum' },
     { key: 'news', icon: '📣', fr: 'Actualités', en: 'News' },
+    { key: 'notifications', icon: '🔔', fr: 'Notifications', en: 'Notifications' },
   ],
   views: {
     dashboard: (root) => withChild(root, (r, base) => S.dashboardView(r, base)),
@@ -33,5 +49,6 @@ export default {
     attendance: (root) => withChild(root, (r, base) => S.attendanceView(r, base, { canJustify: true })),
     programme: (root) => withChild(root, (r, base) => S.programmeView(r, base)),
     news: (root) => S.newsView(root),
+    notifications: notificationsView,
   },
 };

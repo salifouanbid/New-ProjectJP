@@ -26,6 +26,11 @@ const config = {
     username: (process.env.SUPERADMIN_USERNAME || 'superadmin').toLowerCase(),
     password: process.env.SUPERADMIN_PASSWORD || '',
   },
+  whatsapp: {
+    accessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
+    phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
+    businessNumber: process.env.WHATSAPP_BUSINESS_NUMBER || '',
+  },
   smtp: {
     host: process.env.SMTP_HOST || '',
     port: parseInt(process.env.SMTP_PORT || '587', 10),

@@ -342,6 +342,29 @@ CREATE TABLE IF NOT EXISTS announcement_images (
 );
 CREATE INDEX IF NOT EXISTS ix_annimg_ann ON announcement_images(announcement_id, position);
 
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  whatsapp_enabled INTEGER NOT NULL DEFAULT 0,
+  email_enabled INTEGER NOT NULL DEFAULT 1,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS notification_outbox (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  school_id INTEGER NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  recipient_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL CHECK (channel IN ('whatsapp','email','sms')),
+  event_type TEXT NOT NULL,
+  payload TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','sent','failed')),
+  attempts INTEGER NOT NULL DEFAULT 0,
+  available_at TEXT NOT NULL DEFAULT (datetime('now')),
+  sent_at TEXT,
+  last_error TEXT,
+  dedupe_key TEXT NOT NULL,
+  UNIQUE (school_id, dedupe_key)
+);
+CREATE INDEX IF NOT EXISTS ix_notification_outbox_pending ON notification_outbox(status, available_at);
+
 CREATE TABLE IF NOT EXISTS password_resets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

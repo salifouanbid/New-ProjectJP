@@ -9,7 +9,8 @@
     "seed": "node src/seed.js",
     "backup": "node scripts/backup.js",
     "bulletin:preview": "node scripts/preview-bulletin.js",
-    "test": "node test/smoke.js"
+    "test": "node test/smoke.js",
+    "notifications:dispatch": "node scripts/dispatch-notifications.js"
   },
   "engines": {
     "node": ">=18"

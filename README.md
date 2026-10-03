@@ -197,3 +197,7 @@ Commandes : `npm start` · `npm run dev` (redémarrage auto) · `npm run seed` �
 - Pas d'authentification par OTP/SMS ; la réinitialisation se fait par lien email ou par l'administrateur.
 - La page d'accueil utilise une scène 3D en CSS (pas de Three.js).
 - Un seul serveur/fichier SQLite : parfait pour des dizaines d'établissements ; au-delà, prévoir une migration vers PostgreSQL.
+
+## Notifications parents (optionnelles)
+
+Les absences peuvent être placées dans une file de notifications pour les parents. L'e-mail est disponible via SMTP ; WhatsApp utilise l'API WhatsApp Cloud et reste désactivé tant que `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID` et `WHATSAPP_BUSINESS_NUMBER` ne sont pas configurés. Le parent choisit ses canaux dans l'onglet **Notifications** de son espace. Le traitement de la file se lance avec `npm run notifications:dispatch` et peut être exécuté par une tâche planifiée. Les préférences WhatsApp sont désactivées par défaut et aucun message n'est envoyé sans numéro et consentement.
