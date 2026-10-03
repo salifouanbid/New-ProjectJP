@@ -57,7 +57,7 @@ async function queueAbsence({ schoolId, studentId, studentName, date, subjectNam
 }
 
 async function sendWhatsApp(to, payload) {
-  if (!whatsapp.enabled) return { skipped: true, reason: 'WHATSAPP_NOT_CONFIGURED' };
+  if (!whatsapp.enabled) throw new Error('WHATSAPP_NOT_CONFIGURED');
   const url = `https://graph.facebook.com/v20.0/${encodeURIComponent(whatsapp.phoneNumberId)}/messages`;
   const response = await fetch(url, { method: 'POST', headers: { Authorization: `Bearer ${whatsapp.token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', to: cleanPhone(to).replace(/^\+/, ''), type: 'text', text: { preview_url: false, body: notificationText(payload.eventType, payload.payload) } }) });
   if (!response.ok) throw new Error(`WhatsApp API ${response.status}`);
